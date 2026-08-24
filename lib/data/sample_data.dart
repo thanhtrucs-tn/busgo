@@ -138,3 +138,10 @@ const List<Bus> sampleBuses = [
     status: 'active',
   ),
 ];
+
+// Tim cac tuyen xe buyt di qua mot tram (theo id cua tram).
+List<BusRoute> routesThroughStop(String stopId) {
+  return sampleRoutes
+      .where((route) => route.stops.any((stop) => stop.id == stopId))
+      .toList();
+}

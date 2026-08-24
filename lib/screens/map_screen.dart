@@ -62,6 +62,15 @@ class _MapScreenState extends State<MapScreen> {
   void _fitBounds() {
     if (_stops.isEmpty) return;
 
+    // Neu chi co 1 tram thi chi can di chuyen camera den tram do.
+    if (_stops.length == 1) {
+      _mapController.move(
+        LatLng(_stops.first.latitude, _stops.first.longitude),
+        15,
+      );
+      return;
+    }
+
     double minLat = _stops.first.latitude;
     double maxLat = _stops.first.latitude;
     double minLng = _stops.first.longitude;
