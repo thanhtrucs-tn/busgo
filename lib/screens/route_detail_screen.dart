@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../data/sample_data.dart';
 import '../models/bus.dart';
 import '../models/bus_route.dart';
+import '../services/favorite_service.dart';
 
 class RouteDetailScreen extends StatelessWidget {
   const RouteDetailScreen({super.key, required this.route});
@@ -22,7 +23,27 @@ class RouteDetailScreen extends StatelessWidget {
         sampleBuses.where((bus) => bus.routeId == route.id).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Tuyến ${route.routeNumber}')),
+      appBar: AppBar(
+        title: Text('Tuyến ${route.routeNumber}'),
+        actions: [
+          // Nut yeu thich tren AppBar, trang thai tu cap nhat.
+          ListenableBuilder(
+            listenable: FavoriteService.instance,
+            builder: (context, _) {
+              final bool fav = FavoriteService.instance.isFavorite(route.id);
+              return IconButton(
+                icon: Icon(
+                  fav ? Icons.favorite : Icons.favorite_border,
+                  color: fav ? Colors.red : null,
+                ),
+                onPressed: () {
+                  FavoriteService.instance.toggle(route.id);
+                },
+              );
+            },
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

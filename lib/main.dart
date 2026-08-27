@@ -5,9 +5,15 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'services/favorite_service.dart';
 
-void main() {
-  // runApp la ham dau tien duoc goi de chay ung dung Flutter.
+Future<void> main() async {
+  // Can dong nay truoc khi dung plugin (shared_preferences).
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Doc danh sach yeu thich tu bo nho truoc khi chay app.
+  await FavoriteService.instance.load();
+
   runApp(const BusGoApp());
 }
 

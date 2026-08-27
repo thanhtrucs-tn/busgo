@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'bus_route_list_screen.dart';
 import 'bus_stop_list_screen.dart';
 import 'bus_tracking_screen.dart';
+import 'favorite_screen.dart';
 import 'map_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -112,9 +113,11 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.favorite,
                     title: 'Yêu thích',
                     onTap: () {
-                      // Chuc nang yeu thich se duoc lam o Phase 9.
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Chức năng sẽ có ở Phase 9')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FavoriteScreen(),
+                        ),
                       );
                     },
                   ),

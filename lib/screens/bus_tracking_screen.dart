@@ -206,10 +206,18 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                // Server tile Esri World Street Map (mien phi, khong can API key).
+                // CartoDB basemaps gio bao loi "API KEY REQUIRED" khi khong co key.
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
                 userAgentPackageName: 'com.example.busgo',
               ),
               MarkerLayer(markers: _buildBusMarkers()),
+
+              // Ghi nguon ban do.
+              const SimpleAttributionWidget(
+                source: Text('Bản đồ © Esri — Dữ liệu © OpenStreetMap contributors'),
+              ),
             ],
           ),
 

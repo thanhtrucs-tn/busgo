@@ -56,7 +56,15 @@ class StopDetailScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => MapScreen(stops: [stop]),
+                    builder: (_) => MapScreen(
+                      stops: [
+                        MapStop(
+                          name: stop.name,
+                          latitude: stop.latitude,
+                          longitude: stop.longitude,
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
