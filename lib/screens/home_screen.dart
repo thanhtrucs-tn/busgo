@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'bus_route_list_screen.dart';
 import 'bus_stop_list_screen.dart';
+import 'bus_tracking_screen.dart';
 import 'map_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -91,6 +92,18 @@ class HomeScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const MapScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _FeatureCard(
+                    icon: Icons.location_searching,
+                    title: 'Theo dõi xe',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BusTrackingScreen(),
                         ),
                       );
                     },
