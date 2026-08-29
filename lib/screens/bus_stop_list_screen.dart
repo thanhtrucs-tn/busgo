@@ -6,7 +6,10 @@
 import 'package:flutter/material.dart';
 
 import '../data/sample_data.dart';
+import '../l10n/app_localizations.dart';
 import '../models/bus_stop.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 import 'stop_detail_screen.dart';
 
 class BusStopListScreen extends StatefulWidget {
@@ -34,9 +37,10 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
   @override
   Widget build(BuildContext context) {
     final stops = _filteredStops;
+    final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Danh sách trạm')),
+      appBar: AppBar(title: Text(context.tr('stop_list_title'))),
       body: Column(
         children: [
           // O tim kiem tram.
@@ -44,7 +48,7 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Tìm theo tên trạm hoặc địa chỉ',
+                hintText: context.tr('search_stop_hint'),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -54,9 +58,6 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
                           setState(() => _query = '');
                         },
                       ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
               onChanged: (value) {
                 setState(() => _query = value);
@@ -67,22 +68,23 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
           // Danh sach tram (da duoc loc).
           Expanded(
             child: stops.isEmpty
-                ? const Center(child: Text('Không tìm thấy trạm nào'))
+                ? EmptyState(
+                    icon: Icons.location_off,
+                    message: context.tr('no_stops_found'),
+                  )
                 : ListView.builder(
                     itemCount: stops.length,
                     itemBuilder: (context, index) {
                       final stop = stops[index];
+                      final int routeCount = routesThroughStop(stop.id).length;
 
                       return Card(
                         margin: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 6,
                         ),
-                        child: ListTile(
-                          leading: const Icon(Icons.place, color: Colors.green),
-                          title: Text(stop.name),
-                          subtitle: Text(stop.address),
-                          trailing: const Icon(Icons.chevron_right),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
                           onTap: () {
                             Navigator.push(
                               context,
@@ -91,6 +93,82 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
                               ),
                             );
                           },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: colors.primaryContainer,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    Icons.place,
+                                    color: colors.error,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        stop.name,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: colors.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        stop.address,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.directions_bus,
+                                            size: 13,
+                                            color: colors.primary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            context.tr('routes_passing',
+                                                params: {
+                                                  'count': '$routeCount',
+                                                }),
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: colors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: colors.outlineVariant,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },

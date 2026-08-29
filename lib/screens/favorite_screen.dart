@@ -4,8 +4,12 @@
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bus_route.dart';
 import '../services/favorite_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/route_card.dart';
 import 'route_detail_screen.dart';
 
 class FavoriteScreen extends StatelessWidget {
@@ -13,8 +17,32 @@ class FavoriteScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Tuyến yêu thích')),
+      appBar: AppBar(
+        title: Text(context.tr('favorites_title')),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: ListenableBuilder(
+                listenable: FavoriteService.instance,
+                builder: (context, _) {
+                  return Text(
+                    '${FavoriteService.instance.favoriteRoutes.length}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colors.onPrimary,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         // Lang nghe FavoriteService de cap nhat khi them/bo yeu thich.
         listenable: FavoriteService.instance,
@@ -24,8 +52,9 @@ class FavoriteScreen extends StatelessWidget {
 
           // Neu chua co tuyen yeu thich nao thi hien thong bao.
           if (routes.isEmpty) {
-            return const Center(
-              child: Text('Chưa có tuyến yêu thích nào'),
+            return EmptyState(
+              icon: Icons.favorite_border,
+              message: context.tr('favorites_empty'),
             );
           }
 
@@ -34,40 +63,16 @@ class FavoriteScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final route = routes[index];
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: Text(
-                      route.routeNumber,
-                      style: const TextStyle(color: Colors.white),
+              return RouteCard(
+                route: route,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RouteDetailScreen(route: route),
                     ),
-                  ),
-                  title: Text(route.name),
-                  subtitle: Text('${route.startPoint} → ${route.endPoint}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Bam vao tim do se bo yeu thich.
-                      IconButton(
-                        icon: const Icon(Icons.favorite, color: Colors.red),
-                        onPressed: () {
-                          FavoriteService.instance.toggle(route.id);
-                        },
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RouteDetailScreen(route: route),
-                      ),
-                    );
-                  },
-                ),
+                  );
+                },
               );
             },
           );

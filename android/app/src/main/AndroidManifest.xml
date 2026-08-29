@@ -1,7 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Quyen truy cap mang de goi API dang nhap/dang ky (MySQL). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Quyen truy cap bo nho / thu vien anh (Android <= 12; tu Android 13
+         image_picker dung Photo Picker cua he thong, khong can quyen). -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <application
         android:label="BusGo"
         android:name="${applicationName}"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

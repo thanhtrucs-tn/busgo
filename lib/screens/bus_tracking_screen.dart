@@ -10,7 +10,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../data/sample_data.dart';
+import '../l10n/app_localizations.dart';
 import '../models/bus.dart';
+import '../theme/app_theme.dart';
 
 class BusTrackingScreen extends StatefulWidget {
   const BusTrackingScreen({super.key});
@@ -102,20 +104,46 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     return _trackedBuses.map((tracked) {
       return Marker(
         point: tracked.position,
-        width: 60,
-        height: 60,
+        width: 64,
+        height: 70,
         child: GestureDetector(
           onTap: () => _showBusInfo(tracked),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.directions_bus, color: Colors.blue, size: 32),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: context.colors.error,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.directions_bus,
+                  color: context.colors.error,
+                  size: 18,
+                ),
+              ),
               Text(
                 tracked.info.busNumber,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: context.colors.error,
+                  shadows: const [
+                    Shadow(color: Colors.white, blurRadius: 3),
+                  ],
                 ),
               ),
             ],
@@ -127,30 +155,94 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   // Hien thong tin xe khi cham vao marker.
   void _showBusInfo(_TrackedBus tracked) {
+    final colors = context.colors;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Xe ${tracked.info.busNumber}',
-                style: Theme.of(context).textTheme.titleLarge,
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: colors.error,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      context.tr('bus_label', params: {
+                        'number': tracked.info.busNumber,
+                      }),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: colors.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('status_active'),
+                    style: TextStyle(fontSize: 13.5, color: colors.onSurface),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              const Text('Trạng thái: Đang hoạt động'),
-              const SizedBox(height: 4),
-              Text(
-                'Vị trí: ${tracked.position.latitude.toStringAsFixed(5)}, '
-                '${tracked.position.longitude.toStringAsFixed(5)}',
+              Row(
+                children: [
+                  Icon(
+                    Icons.my_location,
+                    size: 16,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${context.tr('position_label')} '
+                    '${tracked.position.latitude.toStringAsFixed(5)}, '
+                    '${tracked.position.longitude.toStringAsFixed(5)}',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '(*) Vị trí là dữ liệu mô phỏng, không phải GPS thật',
-                style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+              const SizedBox(height: 10),
+              Text(
+                context.tr('simulated_note'),
+                style: TextStyle(
+                  color: colors.outline,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -194,7 +286,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Theo dõi xe buýt')),
+      appBar: AppBar(title: Text(context.tr('tracking_title'))),
       body: Stack(
         children: [
           FlutterMap(
@@ -229,17 +321,17 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(8),
+                color: context.colors.primary.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(Icons.info_outline, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Dữ liệu mô phỏng: vị trí xe tự động cập nhật mỗi 2 giây',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
+                      context.tr('tracking_banner'),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ),
                 ],

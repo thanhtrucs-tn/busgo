@@ -16,6 +16,10 @@ import 'package:google_polyline_algorithm/google_polyline_algorithm.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/app_localizations.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+
 // ========================== DU LIEU MAU ==========================
 
 // Mot tram dung don gian, chi giu cac thong tin can thiet cho ban do.
@@ -142,7 +146,7 @@ class _MapScreenState extends State<MapScreen> {
         // Cham vao marker se hien thong tin tram.
         child: GestureDetector(
           onTap: () => _showStopInfo(stop),
-          child: const Icon(Icons.location_pin, color: Colors.red, size: 36),
+          child: Icon(Icons.location_pin, color: context.colors.error, size: 36),
         ),
       );
     }).toList();
@@ -160,7 +164,7 @@ class _MapScreenState extends State<MapScreen> {
     if (points.length < 2) return [];
 
     return [
-      Polyline(points: points, strokeWidth: 4, color: Colors.green),
+      Polyline(points: points, strokeWidth: 4, color: context.colors.primary),
     ];
   }
 
@@ -204,18 +208,53 @@ class _MapScreenState extends State<MapScreen> {
 
   // Hien thong tin tram khi nguoi dung cham vao marker.
   void _showStopInfo(MapStop stop) {
+    final colors = context.colors;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(stop.name, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text('${stop.latitude}, ${stop.longitude}'),
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.place,
+                      color: colors.error,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      stop.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colors.onSurface,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${stop.latitude}, ${stop.longitude}',
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+              ),
             ],
           ),
         );
@@ -228,13 +267,16 @@ class _MapScreenState extends State<MapScreen> {
     // Kiem tra loi: neu khong co du lieu toa do thi hien thong bao thay vi ban do rong.
     if (_stops.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Bản đồ')),
-        body: const Center(child: Text('Không có dữ liệu trạm để hiển thị')),
+        appBar: AppBar(title: Text(context.tr('map_title'))),
+        body: EmptyState(
+          icon: Icons.map_outlined,
+          message: context.tr('map_no_data'),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bản đồ')),
+      appBar: AppBar(title: Text(context.tr('map_title'))),
       body: FlutterMap(
         mapController: _mapController,
         options: MapOptions(

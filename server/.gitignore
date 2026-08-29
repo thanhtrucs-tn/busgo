@@ -1,0 +1,3 @@
+# Không đưa thư mục cài đặt và file mật khẩu lên git.
+node_modules/
+.env

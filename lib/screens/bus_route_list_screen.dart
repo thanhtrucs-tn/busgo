@@ -6,8 +6,12 @@
 import 'package:flutter/material.dart';
 
 import '../data/sample_data.dart';
+import '../l10n/app_localizations.dart';
 import '../models/bus_route.dart';
 import '../services/favorite_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/route_card.dart';
 import 'route_detail_screen.dart';
 
 class BusRouteListScreen extends StatefulWidget {
@@ -37,7 +41,7 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Danh sách tuyến')),
+      appBar: AppBar(title: Text(context.tr('route_list_title'))),
       body: ListenableBuilder(
         // Lang nghe FavoriteService de cap nhat trai tim khi doi trang thai.
         listenable: FavoriteService.instance,
@@ -51,7 +55,7 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
                 padding: const EdgeInsets.all(12),
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'Tìm theo số tuyến hoặc tên',
+                    hintText: context.tr('search_route_hint'),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _query.isEmpty
                         ? null
@@ -61,9 +65,6 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
                               setState(() => _query = '');
                             },
                           ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   onChanged: (value) {
                     setState(() => _query = value);
@@ -74,63 +75,43 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
               // Danh sach tuyen (da duoc loc).
               Expanded(
                 child: routes.isEmpty
-                    ? const Center(child: Text('Không tìm thấy tuyến nào'))
+                    ? EmptyState(
+                        icon: Icons.search_off,
+                        message: context.tr('no_routes_found'),
+                      )
                     : ListView.builder(
-                        itemCount: routes.length,
+                        itemCount: routes.length + 1,
                         itemBuilder: (context, index) {
-                          final BusRoute route = routes[index];
-
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                                child: Text(
-                                  route.routeNumber,
-                                  style: const TextStyle(color: Colors.white),
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                              child: Text(
+                                context.tr('routes_active', params: {
+                                  'count': '${routes.length}',
+                                }),
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.onSurfaceVariant,
                                 ),
                               ),
-                              title: Text(route.name),
-                              subtitle: Text(
-                                '${route.startPoint} → ${route.endPoint}',
-                              ),
-                              // Nut yeu thich + mui ten.
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(
-                                      FavoriteService.instance
-                                              .isFavorite(route.id)
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color: FavoriteService.instance
-                                              .isFavorite(route.id)
-                                          ? Colors.red
-                                          : null,
-                                    ),
-                                    onPressed: () {
-                                      FavoriteService.instance
-                                          .toggle(route.id);
-                                    },
+                            );
+                          }
+
+                          final BusRoute route = routes[index - 1];
+
+                          return RouteCard(
+                            route: route,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RouteDetailScreen(
+                                    route: route,
                                   ),
-                                  const Icon(Icons.chevron_right),
-                                ],
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        RouteDetailScreen(route: route),
-                                  ),
-                                );
-                              },
-                            ),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),

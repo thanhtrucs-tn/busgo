@@ -1,0 +1,371 @@
+// app_localizations.dart
+// He thong da ngon ngu (localization) cho ung dung BusGo.
+// Dung Map tu dien don gian gom Tieng Viet (vi) va Tieng Anh (en).
+// Khi ngon ngu thay doi, MaterialApp doi Locale -> Localizations thay doi
+// -> moi widget goi context.tr() tu dong duoc dung lai (rebuild).
+
+import 'package:flutter/widgets.dart';
+
+/// Bang chu cua cac chuoi hien thi theo tung ngon ngu.
+class AppLocalizations {
+  final Locale locale;
+
+  const AppLocalizations(this.locale);
+
+  static const Map<String, Map<String, String>> _strings = {
+    'vi': {
+      // ------------------------- Navigation -------------------------
+      'nav_home': 'Trang chủ',
+      'nav_map': 'Bản đồ',
+      'nav_notifications': 'Thông báo',
+      'nav_settings': 'Cài đặt',
+      // --------------------------- Home ---------------------------
+      'home_slogan': 'Theo dõi tuyến xe buýt của bạn',
+      'feature_map': 'Bản đồ',
+      'feature_tracking': 'Theo dõi xe',
+      'feature_routes': 'Danh sách tuyến',
+      'feature_stops': 'Tìm trạm',
+      'feature_favorites': 'Yêu thích',
+      'feature_stats': 'Thống kê',
+      'va_title': 'Trợ lý ảo',
+      'va_msg': 'Tính năng trợ lý ảo sẽ sớm ra mắt',
+      'coming_soon': 'Tính năng "{name}" sẽ sớm ra mắt',
+      // ------------------------ Route list ------------------------
+      'route_list_title': 'Danh sách tuyến',
+      'search_route_hint': 'Tìm theo số tuyến hoặc tên',
+      'no_routes_found': 'Không tìm thấy tuyến nào',
+      'routes_active': '{count} tuyến đang hoạt động',
+      'stops_count': '{count} trạm',
+      // ------------------------- Stop list -------------------------
+      'stop_list_title': 'Danh sách trạm',
+      'search_stop_hint': 'Tìm theo tên trạm hoặc địa chỉ',
+      'no_stops_found': 'Không tìm thấy trạm nào',
+      'routes_passing': '{count} tuyến đi qua',
+      // -------------------------- Favorites --------------------------
+      'favorites_title': 'Tuyến yêu thích',
+      'favorites_empty': 'Chưa có tuyến yêu thích nào\nBấm trái tim ở danh sách tuyến để thêm',
+      // ------------------------- Route detail -------------------------
+      'route_no': 'Tuyến {number}',
+      'journey': 'Hành trình',
+      'buses_on_route': 'Xe buýt trên tuyến',
+      'bus_count': '{count} xe',
+      'no_active_buses': 'Không có xe buýt đang hoạt động',
+      'service_hours': 'Hoạt động {time}',
+      'start_point': 'Điểm bắt đầu',
+      'end_point': 'Điểm kết thúc',
+      'operating_time': 'Thời gian hoạt động',
+      'num_stops': 'Số trạm',
+      'stop_start_tag': 'Điểm đầu',
+      'stop_end_tag': 'Điểm cuối',
+      'bus_active': 'Đang hoạt động',
+      'bus_stopped': 'Dừng',
+      // -------------------------- Stop detail -------------------------
+      'stop_type': 'Trạm xe buýt',
+      'address': 'Địa chỉ',
+      'coordinates': 'Tọa độ',
+      'view_on_map': 'Xem vị trí trên bản đồ',
+      'routes_through': 'Các tuyến đi qua trạm',
+      'route_count': '{count} tuyến',
+      'no_routes_through': 'Không có tuyến nào đi qua trạm này',
+      // ---------------------------- Map ----------------------------
+      'map_title': 'Bản đồ',
+      'map_no_data': 'Không có dữ liệu trạm để hiển thị',
+      // -------------------------- Tracking --------------------------
+      'tracking_title': 'Theo dõi xe buýt',
+      'tracking_banner': 'Dữ liệu mô phỏng: vị trí xe tự động cập nhật mỗi 2 giây',
+      'bus_label': 'Xe {number}',
+      'status_active': 'Trạng thái: Đang hoạt động',
+      'position_label': 'Vị trí:',
+      'simulated_note': '(*) Vị trí là dữ liệu mô phỏng, không phải GPS thật',
+      // ------------------------- Notifications -------------------------
+      'notif_title': 'Thông báo',
+      'mark_all_read': 'Đánh dấu tất cả là đã đọc',
+      'group_recent': 'Mới nhất',
+      'group_today': 'Hôm nay',
+      'group_older': 'Cũ hơn',
+      'filter_all': 'Tất cả',
+      'filter_routes': 'Tuyến xe',
+      'filter_system': 'Hệ thống',
+      'swiped_read': 'Đã đọc',
+      'swiped_delete': 'Xóa',
+      'notif_deleted': 'Đã xóa thông báo "{title}"',
+      'notif_empty': 'Không có thông báo nào',
+      'notif_empty_routes': 'Không có thông báo tuyến xe',
+      'notif_empty_system': 'Không có thông báo hệ thống',
+      'kind_arrival': 'Đến trạm',
+      'kind_issue': 'Sự cố',
+      'kind_news': 'Tin tức',
+      'kind_account': 'Tài khoản',
+      'time_just_now': 'Vừa xong',
+      'time_min_ago': '{count} phút trước',
+      'time_hour_ago': '{count} giờ trước',
+      'time_yesterday': 'Hôm qua',
+      'time_day_ago': '{count} ngày trước',
+      // --------------------------- Settings ---------------------------
+      'settings_title': 'Cài đặt',
+      'group_account': 'Tài khoản',
+      'group_prefs': 'Tùy chỉnh',
+      'group_notifs': 'Thông báo',
+      'group_storage': 'Bộ nhớ & Bản đồ',
+      'group_system': 'Hệ thống',
+      'dark_mode': 'Chế độ tối',
+      'dark_mode_sub': 'Sử dụng giao diện tối cho ứng dụng',
+      'language': 'Ngôn ngữ',
+      'language_sub': 'Tiếng Việt / English',
+      'notif_arrival': 'Thông báo xe đến trạm',
+      'notif_arrival_sub': 'Nhắc khi xe buýt sắp đến trạm',
+      'notif_issue': 'Thông báo sự cố tuyến xe',
+      'notif_issue_sub': 'Cảnh báo sự cố, thay đổi tuyến',
+      'clear_cache': 'Xóa bộ nhớ tạm',
+      'clear_cache_sub': 'Bản đồ đã tải · {size}',
+      'offline_map': 'Tải bản đồ ngoại tuyến',
+      'offline_map_sub': 'Dùng khi không có mạng · TP.HCM',
+      'about_app': 'Về ứng dụng BusGo',
+      'privacy_policy': 'Chính sách bảo mật',
+      'logout': 'Đăng xuất',
+      'edit_profile': 'Chỉnh sửa hồ sơ',
+      'edit_profile_sub': 'Tính năng chỉnh sửa hồ sơ sẽ sớm ra mắt',
+      'cancel': 'Hủy',
+      'delete': 'Xóa',
+      'close': 'Đóng',
+      'clear_cache_confirm_title': 'Xóa bộ nhớ tạm',
+      'clear_cache_confirm_msg': 'Bạn có chắc muốn xóa bộ nhớ tạm không?',
+      'cache_cleared': 'Đã xóa bộ nhớ tạm',
+      'downloading_map': 'Đang tải bản đồ ngoại tuyến...',
+      'about_content': 'BusGo - Ứng dụng theo dõi tuyến xe buýt.\n\nPhiên bản 1.0.0',
+      'privacy_content': 'BusGo chỉ sử dụng dữ liệu của bạn để phục vụ theo dõi tuyến xe buýt.\n\nThông tin cá nhân không được chia sẻ cho bên thứ ba.',
+      'logout_confirm_title': 'Đăng xuất',
+      'logout_confirm_msg': 'Bạn có chắc muốn đăng xuất khỏi tài khoản?',
+      'logged_out': 'Đã đăng xuất',
+      // ------------------------- Edit profile -------------------------
+      'edit_title': 'Chỉnh sửa hồ sơ',
+      'label_avatar': 'Chạm để chọn ảnh đại diện',
+      'field_fullname': 'Họ và tên',
+      'field_email': 'Email',
+      'field_phone': 'Số điện thoại',
+      'field_password': 'Mật khẩu',
+      'field_birthday': 'Ngày sinh',
+      'hint_password': 'Mật khẩu (tùy chọn)',
+      'birthday_optional': 'Không bắt buộc',
+      'addresses': 'Địa chỉ',
+      'address_hint': 'Nhập địa chỉ',
+      'add_address': 'Thêm địa chỉ',
+      'address_default': 'Địa chỉ mặc định',
+      'save_changes': 'Lưu thay đổi',
+      'saved_success': 'Đã lưu thay đổi!',
+      'err_name_required': 'Vui lòng nhập họ và tên',
+      'err_name_max': 'Họ và tên tối đa 32 ký tự',
+      'err_email_required': 'Vui lòng nhập email',
+      'err_email_format': 'Email không hợp lệ',
+      'err_email_max': 'Email tối đa 64 ký tự',
+      'err_phone_required': 'Vui lòng nhập số điện thoại',
+      'err_phone_format': 'Số điện thoại gồm 10 chữ số, bắt đầu bằng số 0',
+      'err_password_max': 'Mật khẩu tối đa 32 ký tự',
+      'delete_address': 'Xóa địa chỉ',
+      'address_set_default': 'Đặt làm địa chỉ mặc định',
+      'avatar_pick_error': 'Không thể mở thư viện ảnh',
+      // ------------------------- Xem ho so -------------------------
+      'profile_title': 'Hồ sơ cá nhân',
+      'personal_info': 'Thông tin cá nhân',
+      'not_updated': 'Chưa cập nhật',
+      'no_addresses': 'Chưa có địa chỉ nào',
+    },
+    'en': {
+      // ------------------------- Navigation -------------------------
+      'nav_home': 'Home',
+      'nav_map': 'Map',
+      'nav_notifications': 'Notifications',
+      'nav_settings': 'Settings',
+      // --------------------------- Home ---------------------------
+      'home_slogan': 'Follow your bus routes',
+      'feature_map': 'Map',
+      'feature_tracking': 'Live Tracking',
+      'feature_routes': 'Route List',
+      'feature_stops': 'Find Stops',
+      'feature_favorites': 'Favorites',
+      'feature_stats': 'Statistics',
+      'va_title': 'Virtual Assistant',
+      'va_msg': 'The virtual assistant is coming soon',
+      'coming_soon': 'The "{name}" feature is coming soon',
+      // ------------------------ Route list ------------------------
+      'route_list_title': 'Route List',
+      'search_route_hint': 'Search by route number or name',
+      'no_routes_found': 'No routes found',
+      'routes_active': '{count} active routes',
+      'stops_count': '{count} stops',
+      // ------------------------- Stop list -------------------------
+      'stop_list_title': 'Bus Stops',
+      'search_stop_hint': 'Search by stop name or address',
+      'no_stops_found': 'No stops found',
+      'routes_passing': '{count} routes passing',
+      // -------------------------- Favorites --------------------------
+      'favorites_title': 'Favorite Routes',
+      'favorites_empty': 'No favorite routes yet\nTap the heart in the route list to add',
+      // ------------------------- Route detail -------------------------
+      'route_no': 'Route {number}',
+      'journey': 'Journey',
+      'buses_on_route': 'Buses on Route',
+      'bus_count': '{count} buses',
+      'no_active_buses': 'No active buses',
+      'service_hours': 'Service {time}',
+      'start_point': 'Start',
+      'end_point': 'End',
+      'operating_time': 'Operating Hours',
+      'num_stops': 'Number of Stops',
+      'stop_start_tag': 'Start',
+      'stop_end_tag': 'End',
+      'bus_active': 'Active',
+      'bus_stopped': 'Stopped',
+      // -------------------------- Stop detail -------------------------
+      'stop_type': 'Bus Stop',
+      'address': 'Address',
+      'coordinates': 'Coordinates',
+      'view_on_map': 'View on Map',
+      'routes_through': 'Routes Through This Stop',
+      'route_count': '{count} routes',
+      'no_routes_through': 'No routes pass this stop',
+      // ---------------------------- Map ----------------------------
+      'map_title': 'Map',
+      'map_no_data': 'No stop data to display',
+      // -------------------------- Tracking --------------------------
+      'tracking_title': 'Live Bus Tracking',
+      'tracking_banner': 'Simulated data: bus positions update every 2 seconds',
+      'bus_label': 'Bus {number}',
+      'status_active': 'Status: Active',
+      'position_label': 'Position:',
+      'simulated_note': '(*) Simulated positions, not real GPS',
+      // ------------------------- Notifications -------------------------
+      'notif_title': 'Notifications',
+      'mark_all_read': 'Mark all as read',
+      'group_recent': 'Recent',
+      'group_today': 'Today',
+      'group_older': 'Older',
+      'filter_all': 'All',
+      'filter_routes': 'Routes',
+      'filter_system': 'System',
+      'swiped_read': 'Read',
+      'swiped_delete': 'Delete',
+      'notif_deleted': 'Deleted notification "{title}"',
+      'notif_empty': 'No notifications',
+      'notif_empty_routes': 'No route notifications',
+      'notif_empty_system': 'No system notifications',
+      'kind_arrival': 'Bus Arrival',
+      'kind_issue': 'Issue',
+      'kind_news': 'News',
+      'kind_account': 'Account',
+      'time_just_now': 'Just now',
+      'time_min_ago': '{count} minutes ago',
+      'time_hour_ago': '{count} hours ago',
+      'time_yesterday': 'Yesterday',
+      'time_day_ago': '{count} days ago',
+      // --------------------------- Settings ---------------------------
+      'settings_title': 'Settings',
+      'group_account': 'Account',
+      'group_prefs': 'Preferences',
+      'group_notifs': 'Notifications',
+      'group_storage': 'Storage & Maps',
+      'group_system': 'System',
+      'dark_mode': 'Dark Mode',
+      'dark_mode_sub': 'Use a dark theme for the app',
+      'language': 'Language',
+      'language_sub': 'Vietnamese / English',
+      'notif_arrival': 'Bus Arrival Notifications',
+      'notif_arrival_sub': 'Alert when a bus is approaching',
+      'notif_issue': 'Route Issue Notifications',
+      'notif_issue_sub': 'Alert about issues and route changes',
+      'clear_cache': 'Clear Cache',
+      'clear_cache_sub': 'Downloaded maps · {size}',
+      'offline_map': 'Offline Maps',
+      'offline_map_sub': 'Use without internet · HCMC',
+      'about_app': 'About BusGo',
+      'privacy_policy': 'Privacy Policy',
+      'logout': 'Log Out',
+      'edit_profile': 'Edit Profile',
+      'edit_profile_sub': 'Profile editing is coming soon',
+      'cancel': 'Cancel',
+      'delete': 'Delete',
+      'close': 'Close',
+      'clear_cache_confirm_title': 'Clear Cache',
+      'clear_cache_confirm_msg': 'Are you sure you want to clear the cache?',
+      'cache_cleared': 'Cache cleared',
+      'downloading_map': 'Downloading offline maps...',
+      'about_content': 'BusGo - Bus route tracking app.\n\nVersion 1.0.0',
+      'privacy_content': 'BusGo only uses your data to serve bus route tracking.\n\nPersonal information is never shared with third parties.',
+      'logout_confirm_title': 'Log Out',
+      'logout_confirm_msg': 'Are you sure you want to log out?',
+      'logged_out': 'Logged out',
+      // ------------------------- Edit profile -------------------------
+      'edit_title': 'Edit Profile',
+      'label_avatar': 'Tap to choose an avatar',
+      'field_fullname': 'Full Name',
+      'field_email': 'Email',
+      'field_phone': 'Phone Number',
+      'field_password': 'Password',
+      'field_birthday': 'Date of Birth',
+      'hint_password': 'Password (optional)',
+      'birthday_optional': 'Optional',
+      'addresses': 'Addresses',
+      'address_hint': 'Enter an address',
+      'add_address': 'Add Address',
+      'address_default': 'Default Address',
+      'save_changes': 'Save Changes',
+      'saved_success': 'Changes saved!',
+      'err_name_required': 'Full name is required',
+      'err_name_max': 'Full name must be at most 32 characters',
+      'err_email_required': 'Email is required',
+      'err_email_format': 'Invalid email format',
+      'err_email_max': 'Email must be at most 64 characters',
+      'err_phone_required': 'Phone number is required',
+      'err_phone_format': 'Phone must be 10 digits, starting with 0',
+      'err_password_max': 'Password must be at most 32 characters',
+      'delete_address': 'Remove address',
+      'address_set_default': 'Set as default address',
+      'avatar_pick_error': 'Could not open the image library',
+      // ------------------------- View profile -------------------------
+      'profile_title': 'My Profile',
+      'personal_info': 'Personal Information',
+      'not_updated': 'Not set yet',
+      'no_addresses': 'No addresses yet',
+    },
+  };
+
+  /// Lay chuoi dich theo key, ho tro the {param}.
+  String tr(String key, {Map<String, String> params = const {}}) {
+    final map = _strings[locale.languageCode] ?? _strings['vi']!;
+    var text = map[key] ?? _strings['vi']![key] ?? key;
+    params.forEach((k, v) {
+      text = text.replaceAll('{$k}', v);
+    });
+    return text;
+  }
+
+  /// Lay doi tuong dich gan nhat. Neu chua cau hinh (vi du trong test)
+  /// thi mac dinh dung Tieng Viet.
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        const AppLocalizations(Locale('vi'));
+  }
+}
+
+/// Delegate giup MaterialApp nap du lieu dich cho tung ngon ngu.
+class AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) =>
+      locale.languageCode == 'vi' || locale.languageCode == 'en';
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async =>
+      AppLocalizations(locale);
+
+  @override
+  bool shouldReload(covariant AppLocalizationsDelegate old) => false;
+}
+
+/// Mo rong de goi dich de dang: context.tr('ten_key').
+extension AppL10nX on BuildContext {
+  String tr(String key, {Map<String, String> params = const {}}) =>
+      AppLocalizations.of(this).tr(key, params: params);
+}
