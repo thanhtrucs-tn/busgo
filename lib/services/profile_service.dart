@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/user_account.dart';
+
 class ProfileService extends ChangeNotifier {
   // Singleton: chi co mot doi tuong duy nhat trong ca app.
   ProfileService._();
@@ -22,6 +24,8 @@ class ProfileService extends ChangeNotifier {
   static const String _kAvatar = 'profile_avatar';
   static const String _kAddresses = 'profile_addresses';
   static const String _kDefaultIndex = 'profile_default_index';
+  static const String _kLocationLat = 'profile_location_lat';
+  static const String _kLocationLng = 'profile_location_lng';
 
   // Du lieu ho so (mac dinh la nguoi dung mau).
   String _name = 'Nguyễn Văn A';
@@ -32,6 +36,10 @@ class ProfileService extends ChangeNotifier {
   List<String> _addresses = <String>[];
   int _defaultAddressIndex = 0;
 
+  // Toa do GPS cua dia chi chinh (lay khi user bam "Lay vi tri hien tai").
+  double? _locationLat;
+  double? _locationLng;
+
   String get name => _name;
   String get email => _email;
   String get phone => _phone;
@@ -39,6 +47,8 @@ class ProfileService extends ChangeNotifier {
   Uint8List? get avatarBytes => _avatarBytes;
   List<String> get addresses => List.unmodifiable(_addresses);
   int get defaultAddressIndex => _defaultAddressIndex;
+  double? get locationLat => _locationLat;
+  double? get locationLng => _locationLng;
 
   /// Ky tu dau tien cua ten (dung lam avatar mac dinh khi chua chon anh).
   String get initial {
@@ -61,6 +71,8 @@ class ProfileService extends ChangeNotifier {
 
     _addresses = prefs.getStringList(_kAddresses) ?? <String>[];
     _defaultAddressIndex = prefs.getInt(_kDefaultIndex) ?? 0;
+    _locationLat = prefs.getDouble(_kLocationLat);
+    _locationLng = prefs.getDouble(_kLocationLng);
 
     notifyListeners();
   }
@@ -74,6 +86,8 @@ class ProfileService extends ChangeNotifier {
     Uint8List? avatarBytes,
     List<String>? addresses,
     int? defaultAddressIndex,
+    double? locationLat,
+    double? locationLng,
   }) async {
     _name = name ?? _name;
     _email = email ?? _email;
@@ -82,6 +96,8 @@ class ProfileService extends ChangeNotifier {
     _avatarBytes = avatarBytes;
     _addresses = addresses ?? _addresses;
     _defaultAddressIndex = defaultAddressIndex ?? _defaultAddressIndex;
+    _locationLat = locationLat;
+    _locationLng = locationLng;
 
     // Bao cho giao dien biet ho so da thay doi.
     notifyListeners();
@@ -100,5 +116,37 @@ class ProfileService extends ChangeNotifier {
     );
     await prefs.setStringList(_kAddresses, _addresses);
     await prefs.setInt(_kDefaultIndex, _defaultAddressIndex);
+    if (_locationLat == null || _locationLng == null) {
+      await prefs.remove(_kLocationLat);
+      await prefs.remove(_kLocationLng);
+    } else {
+      await prefs.setDouble(_kLocationLat, _locationLat!);
+      await prefs.setDouble(_kLocationLng, _locationLng!);
+    }
+  }
+
+  // Đồng bộ TÊN + EMAIL từ tài khoản đang đăng nhập (nguồn dữ liệu chung).
+  // Được gọi mỗi khi đăng nhập / khôi phục phiên để mọi màn hình
+  // (Trang cài đặt, Hồ sơ...) hiển thị đúng tài khoản vừa đăng nhập.
+  Future<void> syncFromSession(UserAccount user) async {
+    // Ưu tiên tên hiển thị; không có thì dùng tên đăng nhập.
+    _name = user.name.isNotEmpty ? user.name : user.username;
+    _email = user.email;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kName, _name);
+    await prefs.setString(_kEmail, _email);
+  }
+
+  // Xóa TÊN + EMAIL khi đăng xuất để không lưu lại dữ liệu tài khoản cũ.
+  Future<void> clearIdentity() async {
+    _name = '';
+    _email = '';
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kName, _name);
+    await prefs.setString(_kEmail, _email);
   }
 }

@@ -1,18 +1,19 @@
 // session_service.dart
-// Quản lý PHIÊN ĐĂNG NHẬP hiện tại của ứng dụng.
-// Giữ thông tin tài khoản đang đăng nhập để các màn hình khác
-// dùng chung (ví dụ: hiển thị lời chào "Hello, <tên>" trên trang chủ).
+// Quản lý PHIÊN ĐĂNG NHẬP hiện tại của ứng dụng (trạng thái trong bộ nhớ).
 //
-// Khác biệt với RememberMeService:
-//  - RememberMeService: lưu TÊN tài khoản để autofill ô đăng nhập.
-//  - SessionService: giữ tài khoản đang ĐĂNG NHẬP trong phiên làm việc.
+// Khác biệt giữa các "lớp lưu trữ":
+//  - TokenStorage   : lưu JWT + user vào secure storage (bền vững).
+//  - SessionService : giữ USER đang đăng nhập trong bộ nhớ (nhanh, tức thời).
+//  - RememberMeService: lưu TÊN đăng nhập để autofill ô nhập (không phải JWT).
 //
-// Khi người dùng đăng xuất -> logout() -> màn hình quay về đăng nhập,
-// nhưng tên ghi nhớ (RememberMeService) vẫn còn để autofill.
+// Khi ĐĂNG XUẤT: gọi AuthService.logout() để xóa JWT trên thiết bị,
+// rồi xóa user khỏi bộ nhớ -> màn hình quay về Đăng nhập.
 
 import 'package:flutter/foundation.dart';
 
 import '../models/user_account.dart';
+import 'auth_service.dart';
+import 'profile_service.dart';
 
 class SessionService extends ChangeNotifier {
   // Singleton: chỉ có một đối tượng duy nhất trong cả ứng dụng.
@@ -26,14 +27,23 @@ class SessionService extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   // Lưu tài khoản vừa đăng nhập thành công vào phiên hiện tại.
+  // Đồng thời đồng bộ tên/email lên ProfileService - một nguồn dữ liệu chung
+  // để Trang cài đặt / Hồ sơ luôn khớp với Trang chủ.
   // Ví dụ: SessionService.instance.login(user);
   void login(UserAccount user) {
     _currentUser = user;
+    // Cập nhật bộ nhớ ProfileService ngay (không cần chờ lưu vào đĩa).
+    ProfileService.instance.syncFromSession(user);
     notifyListeners();
   }
 
-  // Đăng xuất: xóa tài khoản khỏi phiên hiện tại.
-  void logout() {
+  // Đăng xuất: xóa JWT khỏi thiết bị + xóa user khỏi bộ nhớ.
+  // Sau khi gọi, app phải chuyển về màn hình Đăng nhập.
+  Future<void> logout() async {
+    // Xóa token + user trong secure storage (JWT không còn giá trị).
+    await AuthService.instance.logout();
+    // Xóa tên/email khỏi ProfileService để không lộ tài khoản cũ.
+    await ProfileService.instance.clearIdentity();
     _currentUser = null;
     notifyListeners();
   }

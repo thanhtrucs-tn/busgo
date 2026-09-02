@@ -10,6 +10,7 @@
 //  và tự động điền sẵn tên đăng nhập vừa tạo.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // Bộ điều khiển ô nhập dữ liệu.
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
 
@@ -40,6 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     // Giải phóng bộ điều khiển để tránh rò rỉ bộ nhớ.
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -56,11 +59,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
+    final email = _emailController.text.trim();
 
     // Gọi API đăng ký tài khoản trên máy chủ.
+    // Backend: kiểm tra trùng tên/email, băm mật khẩu bcrypt,
+    // lưu database TEST_123, tạo JWT (đăng ký xong là đã có token).
     final result = await AuthService.instance.register(
       username: username,
       password: password,
+      email: email,
     );
 
     // Bảo vệ: tránh dùng context sau khi màn hình đã bị hủy.
@@ -118,14 +125,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Ô nhập TÊN ĐĂNG NHẬP (tối đa 32 ký tự theo database).
+                  // Ô nhập TÊN ĐĂNG NHẬP (tối đa 32 ký tự, chỉ chữ/số/gạch dưới).
                   TextFormField(
                     controller: _usernameController,
                     maxLength: 32,
                     textInputAction: TextInputAction.next,
+                    // Chặn gõ ký tự đặc biệt / khoảng trắng ngay khi nhập.
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9_]'),
+                      ),
+                    ],
                     decoration: const InputDecoration(
                       labelText: 'Tên đăng nhập',
-                      hintText: 'Từ 3 đến 32 ký tự',
+                      hintText: 'Chữ, số, gạch dưới · 3-32 ký tự',
                       prefixIcon: Icon(Icons.person_outline),
                       counterText: '',
                     ),
@@ -134,6 +147,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (text.isEmpty) return 'Vui lòng nhập tên đăng nhập';
                       if (text.length < 3 || text.length > 32) {
                         return 'Tên đăng nhập phải có từ 3 đến 32 ký tự';
+                      }
+                      if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(text)) {
+                        return 'Tên đăng nhập chỉ gồm chữ cái, số và dấu gạch dưới';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Ô nhập EMAIL (TÙY CHỌN, tối đa 48 ký tự).
+                  // Nếu có email, có thể đăng nhập bằng email và dùng
+                  // cho các tính năng khác sau này. Không bắt buộc.
+                  TextFormField(
+                    controller: _emailController,
+                    maxLength: 48,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'Email (không bắt buộc)',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      counterText: '',
+                    ),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return null; // Không bắt buộc
+                      if (text.length > 48) {
+                        return 'Email tối đa 48 ký tự';
+                      }
+                      // Kiểm tra định dạng, ví dụ: abc@example.com.
+                      final regex = RegExp(
+                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                      );
+                      if (!regex.hasMatch(text)) {
+                        return 'Email không đúng định dạng, ví dụ: abc@example.com';
                       }
                       return null;
                     },

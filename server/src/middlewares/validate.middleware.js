@@ -1,19 +1,25 @@
 // ------------------------------------------------------------
-// Middleware kiểm tra dữ liệu đầu vào trước khi xử lý.
-// Độ dài tối đa được đặt KHỚP với cấu trúc bảng users:
+// Middleware kiểm tra dữ liệu đầu vào TRƯỚC khi xử lý.
+// Độ dài tối đa khớp với cấu trúc bảng users:
 //   - username tối đa 32 ký tự
 //   - password tối đa 64 ký tự
+//   - email tối đa 255 ký tự (tùy chọn, đúng định dạng nếu có)
+//   - name tối đa 50 ký tự (tùy chọn)
 // ------------------------------------------------------------
 
-// Hằng số giới hạn được dùng chung (validate + hướng dẫn ở tầng giao diện).
+// Hằng số giới hạn dùng chung (khớp với model Sequelize).
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 32;
 export const PASSWORD_MIN = 6;
 export const PASSWORD_MAX = 64;
+export const NAME_MAX = 50;
+
+// Định dạng email tiêu chuẩn, ví dụ: abc@example.com
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Kiểm tra dữ liệu hợp lệ cho chức năng ĐĂNG KÝ.
 export function validateRegister(req, res, next) {
-  const { username, password } = req.body || {};
+  const { username, password, email, name } = req.body || {};
 
   // Tên đăng nhập: bắt buộc, dài từ 3 đến 32 ký tự.
   if (!username || typeof username !== 'string') {
@@ -23,8 +29,11 @@ export function validateRegister(req, res, next) {
       data: null,
     });
   }
-  const name = username.trim();
-  if (name.length < USERNAME_MIN || name.length > USERNAME_MAX) {
+  const cleanedUsername = username.trim();
+  if (
+    cleanedUsername.length < USERNAME_MIN ||
+    cleanedUsername.length > USERNAME_MAX
+  ) {
     return res.status(400).json({
       success: false,
       message: `Tên đăng nhập phải có từ ${USERNAME_MIN} đến ${USERNAME_MAX} ký tự`,
@@ -48,32 +57,67 @@ export function validateRegister(req, res, next) {
     });
   }
 
+  // Email (tùy chọn): nếu có nhập thì phải đúng định dạng.
+  const cleanedEmail = (email || '').trim();
+  if (cleanedEmail && !EMAIL_REGEX.test(cleanedEmail)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email không đúng định dạng, ví dụ: abc@example.com',
+      data: null,
+    });
+  }
+
+  // Tên hiển thị (tùy chọn): không quá 50 ký tự.
+  const cleanedName = (name || '').trim();
+  if (cleanedName.length > NAME_MAX) {
+    return res.status(400).json({
+      success: false,
+      message: `Tên hiển thị không được quá ${NAME_MAX} ký tự`,
+      data: null,
+    });
+  }
+
   // Thay giá trị đã chuẩn hóa vào body để xử lý tiếp.
-  req.body = { username: name, password };
+  req.body = {
+    username: cleanedUsername,
+    password,
+    email: cleanedEmail,
+    name: cleanedName,
+  };
   return next();
 }
 
 // Kiểm tra dữ liệu hợp lệ cho chức năng ĐĂNG NHẬP.
 export function validateLogin(req, res, next) {
-  const { username, password } = req.body || {};
+  const { password } = req.body || {};
+  // Chấp nhận tên đăng nhập HOẶC email (cả 2 đều nằm trong 'identifier').
+  const identifier =
+    req.body?.identifier || req.body?.username || req.body?.email;
 
-  if (!username || !password) {
+  if (!identifier || !password) {
     return res.status(400).json({
       success: false,
-      message: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu',
+      message: 'Vui lòng nhập đầy đủ tên đăng nhập (hoặc email) và mật khẩu',
       data: null,
     });
   }
 
-  // Giới hạn độ dài tương tự như đăng ký để khớp với cơ sở dữ liệu.
-  if (username.length > USERNAME_MAX || password.length > PASSWORD_MAX) {
+  // Giới hạn độ dài để khớp với cơ sở dữ liệu.
+  if (identifier.length > USERNAME_MAX && identifier.length > 255) {
     return res.status(400).json({
       success: false,
-      message: 'Tên đăng nhập hoặc mật khẩu vượt quá độ dài cho phép',
+      message: 'Tên đăng nhập hoặc email vượt quá độ dài cho phép',
+      data: null,
+    });
+  }
+  if (password.length > PASSWORD_MAX) {
+    return res.status(400).json({
+      success: false,
+      message: 'Mật khẩu vượt quá độ dài cho phép',
       data: null,
     });
   }
 
-  req.body = { username: username.trim(), password };
+  req.body = { identifier: identifier.trim(), password };
   return next();
 }

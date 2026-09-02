@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../services/profile_service.dart';
+import '../services/session_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import 'auth/login_screen.dart';
 import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -289,16 +291,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Xac nhan dang xuat (mo phong).
-  void _confirmLogout() {
-    showDialog<void>(
+  // Xac nhan dang xuat: xoa JWT + phien dang nhap, quay ve man hinh dang nhap.
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.tr('logout_confirm_title')),
         content: Text(context.tr('logout_confirm_msg')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text(context.tr('cancel')),
           ),
           FilledButton(
@@ -306,16 +308,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: context.colors.error,
               foregroundColor: context.colors.onError,
             ),
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.tr('logged_out'))),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: Text(context.tr('logout')),
           ),
         ],
       ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Xoa JWT khoi secure storage + user khoi bo nho.
+    await SessionService.instance.logout();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.tr('logged_out'))),
+    );
+
+    // Quay ve man hinh dang nhap (bo toan bo stack hien tai).
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 }

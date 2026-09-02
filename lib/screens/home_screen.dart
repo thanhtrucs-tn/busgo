@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/empty_state.dart';
 import 'auth/login_screen.dart';
 import 'bus_route_list_screen.dart';
 import 'bus_stop_list_screen.dart';
@@ -17,6 +16,7 @@ import 'favorite_screen.dart';
 import 'map_screen.dart';
 import 'notification_screen.dart';
 import 'settings_screen.dart';
+import 'statistics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -156,12 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _FlatCard(
                     icon: Icons.bar_chart,
                     label: context.tr('feature_stats'),
-                    onTap: () => _open(
-                      _PlaceholderScreen(
-                        title: context.tr('feature_stats'),
-                        icon: Icons.bar_chart,
-                      ),
-                    ),
+                    onTap: () => _open(const StatisticsScreen()),
                   ),
                 ],
               ),
@@ -251,8 +246,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true && context.mounted) {
-      // Xoa tai khoan khoi phien hien tai.
-      SessionService.instance.logout();
+      // Xoa tai khoan khoi phien hien tai + XOA JWT trong secure storage,
+      // nguoi dung phai dang nhap lai bang email/mat khau.
+      await SessionService.instance.logout();
+
+      // Bảo vệ: kiểm tra lại sau khi await.
+      if (!context.mounted) return;
 
       // Quay ve man hinh dang nhap.
       Navigator.of(context).pushAndRemoveUntil(
@@ -361,25 +360,6 @@ class _FlatCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// _PlaceholderScreen: man hinh tam cho cac tinh nang chua hoan thien.
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: EmptyState(
-        icon: icon,
-        message: context.tr('coming_soon', params: {'name': title}),
       ),
     );
   }

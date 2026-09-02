@@ -2,9 +2,13 @@
 // Man hinh Xem ho so ca nhan cua ung dung BusGo.
 // Hien thi avatar, ten, email, so dien thoai, ngay sinh, danh sach dia chi
 // va dia chi mac dinh. Du lieu lay tu ProfileService (da luu khi chinh sua).
-// Co nut "Chinh sua ho so" chuyen sang man hinh chinh sua.
+// Bam vao avatar de tai anh tu thu vien thiet bi (dinh dang bat ky)
+// lam anh dai dien moi. Co nut "Chinh sua ho so" chuyen sang man hinh chinh sua.
+
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
 import '../services/profile_service.dart';
@@ -15,6 +19,35 @@ import 'edit_profile_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  // Tai anh tu thu vien thiet bi (khong gioi han dinh dang) lam avatar moi.
+  Future<void> _pickAvatar(BuildContext context) async {
+    final ProfileService profile = ProfileService.instance;
+    try {
+      // ImageSource.gallery: chon tu thu vien anh tren Android/Windows/Web.
+      final XFile? image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      if (image == null) return; // Nguoi dung huy chon.
+
+      // Doc thanh bytes de hien thi tren moi nen tang (khong dung File).
+      final Uint8List bytes = await image.readAsBytes();
+      if (!context.mounted) return;
+
+      // Luu vao ProfileService -> moi man hinh cap nhat ngay lap tuc.
+      await profile.save(avatarBytes: bytes);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('avatar_updated'))),
+      );
+    } catch (_) {
+      // Loi quyen / khong mo duoc thu vien -> thong bao cho nguoi dung.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('avatar_pick_error'))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -22,7 +55,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('profile_title'))),
       body: ListenableBuilder(
-        // Cap nhat ngay khi ho so thay doi (sau khi chinh sua).
+        // Cap nhat ngay khi ho so thay doi (sau khi doi avatar / chinh sua).
         listenable: ProfileService.instance,
         builder: (context, _) {
           final ProfileService profile = ProfileService.instance;
@@ -35,22 +68,56 @@ class ProfileScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: colors.primaryContainer,
-                      backgroundImage: profile.avatarBytes != null
-                          ? MemoryImage(profile.avatarBytes!)
-                          : null,
-                      child: profile.avatarBytes == null
-                          ? Text(
-                              profile.initial,
-                              style: TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w800,
-                                color: colors.primary,
+                    // Avatar co hieu may anh: bam de tai anh tu thu vien.
+                    GestureDetector(
+                      onTap: () => _pickAvatar(context),
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 48,
+                            backgroundColor: colors.primaryContainer,
+                            backgroundImage: profile.avatarBytes != null
+                                ? MemoryImage(profile.avatarBytes!)
+                                : null,
+                            child: profile.avatarBytes == null
+                                ? Text(
+                                    profile.initial,
+                                    style: TextStyle(
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.primary,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          // Icon may anh: gợi ý "bam vao day de doi avatar".
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: colors.surface,
+                                width: 2,
                               ),
-                            )
-                          : null,
+                            ),
+                            child: Icon(
+                              Icons.photo_camera,
+                              size: 18,
+                              color: colors.onPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr('label_avatar'),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Text(

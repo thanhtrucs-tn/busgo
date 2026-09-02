@@ -10,9 +10,12 @@
 // Luu anh dang BYTES (Uint8List) + Image.memory: tuong thich moi nen tang
 // (Android, Windows, Web) - khong dung dart:io File vi se loi tren Web.
 
-import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
@@ -40,6 +43,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _passwordCtrl;
   late final TextEditingController _dobCtrl;
+
+  // Dia chi: toa do GPS cua dia chi chinh (neu da lay) + dang lay vi tri.
+  double? _locationLat;
+  double? _locationLng;
+  bool _locating = false;
 
   // Thiet bi chon anh + anh dai dien dang chon (luu dang bytes).
   final ImagePicker _picker = ImagePicker();
@@ -80,6 +88,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _defaultAddressIndex = _addressCtrls.isEmpty
         ? 0
         : profile.defaultAddressIndex.clamp(0, _addressCtrls.length - 1);
+    _locationLat = profile.locationLat;
+    _locationLng = profile.locationLng;
   }
 
   @override
@@ -100,18 +110,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _validateName(String? value) {
     final v = (value ?? '').trim();
     if (v.isEmpty) return context.tr('err_name_required');
-    if (v.length > 32) return context.tr('err_name_max');
+    if (v.length > 50) return context.tr('err_name_max');
     return null;
   }
 
   String? _validateEmail(String? value) {
     final v = (value ?? '').trim();
     if (v.isEmpty) return context.tr('err_email_required');
-    if (v.length > 64) return context.tr('err_email_max');
+    if (v.length > 48) return context.tr('err_email_max');
     if (!_emailReg.hasMatch(v)) return context.tr('err_email_format');
     return null;
   }
 
+  // Số điện thoại: CHỈ số, đúng 10 chữ số, bắt đầu bằng 0.
   String? _validatePhone(String? value) {
     final v = (value ?? '').trim();
     if (v.isEmpty) return context.tr('err_phone_required');
@@ -121,7 +132,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? _validatePassword(String? value) {
     final v = value ?? '';
-    if (v.length > 32) return context.tr('err_password_max');
+    if (v.length > 64) return context.tr('err_password_max');
     return null;
   }
 
@@ -169,6 +180,193 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return '$day/$month/${d.year}';
   }
 
+  // ------------------------- Vi tri -------------------------
+
+  // Lấy vị trí hiện tại của người dùng qua GPS, sau đó thử chuyển
+  // tọa độ thành địa chỉ. Nếu không xin được quyền / lỗi GPS thì
+  // hiện thông báo, người dùng vẫn có thể nhập địa chỉ thủ công.
+  Future<void> _fetchCurrentLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    String? errorKey;
+
+    try {
+      // Bước 1: kiểm tra dịch vụ định vị (GPS) đã bật chưa.
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        errorKey = 'location_service_disabled';
+      } else {
+        // Bước 2: xin quyền truy cập vị trí (lần đầu app chạy).
+        var permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          errorKey = 'location_permission_denied';
+        } else {
+          // Bước 3: lấy tọa độ hiện tại (độ chính xác cao, tối đa 15s).
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 15),
+            ),
+          );
+          _locationLat = position.latitude;
+          _locationLng = position.longitude;
+
+          // Bước 4: chuyển tọa độ -> địa chỉ. Nếu dịch vụ đảo tọa độ
+          // không hoạt động (mất mạng...) thì dùng chuỗi tọa độ dạng đọc được,
+          // LUÔN đưa kết quả vào ô địa chỉ đầu để người dùng thấy ngay.
+          final address = await _reverseGeocode(
+            position.latitude,
+            position.longitude,
+          );
+          final display = (address != null && address.isNotEmpty)
+              ? address
+              : '${position.latitude.toStringAsFixed(5)}, '
+                  '${position.longitude.toStringAsFixed(5)}';
+          // Luon co it nhat 1 o dia chi (xem _addressCtrls khi khoi tao).
+          _addressCtrls.first.text = display;
+          // Rebuild de phan anh gia tri moi cua o input ngay lap tuc.
+          setState(() {});
+        }
+      }
+    } catch (_) {
+      errorKey = 'location_error';
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          context.tr(errorKey ?? 'location_fetched'),
+        ),
+      ),
+    );
+  }
+
+  // Chuyển tọa độ GPS thành địa chỉ chữ chi tiết (Reverse Geocoding).
+// Thử lần lượt 2 dịch vụ miễn phí, không cần API key:
+//   1. OpenStreetMap Nominatim (ưu tiên, cấu trúc địa chỉ theo cấp hành chính VN).
+//   2. BigDataCloud reverse-geocode-client (dự phòng khi Nominatim lỗi/mất mạng).
+// Trả null nếu cả 2 đều thất bại - khi đó chỉ lưu tọa độ, người dùng tự nhập tay.
+Future<String?> _reverseGeocode(double lat, double lng) async {
+  final nominatim = await _nominatimReverse(lat, lng);
+  if (nominatim != null && nominatim.isNotEmpty) return nominatim;
+  return _bigDataCloudReverse(lat, lng);
+}
+
+// Reverse geocoding bằng OpenStreetMap Nominatim.
+// Trả về địa chỉ dạng: "Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố".
+Future<String?> _nominatimReverse(double lat, double lng) async {
+  try {
+    final uri = Uri.parse(
+      'https://nominatim.openstreetmap.org/reverse',
+    ).replace(
+      queryParameters: {
+        'lat': lat.toStringAsFixed(6),
+        'lon': lng.toStringAsFixed(6),
+        'format': 'jsonv2',
+        'accept-language': 'vi',
+      },
+    );
+    final response = await http
+        .get(uri, headers: {'User-Agent': 'BusGo/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    if (data is! Map<String, dynamic>) return null;
+    return _formatNominatim(data);
+  } catch (_) {
+    // Lỗi mạng: chuyển sang dịch vụ dự phòng ở bước sau.
+    return null;
+  }
+}
+
+// Ráp địa chỉ từ phần "address" do Nominatim trả về, theo thứ tự
+// đường -> phường/xã -> quận/huyện -> tỉnh/thành -> quốc gia.
+String? _formatNominatim(Map<String, dynamic> data) {
+  final fallback = (data['display_name'] as String?)?.trim();
+  final address = data['address'];
+  if (address is! Map || address.isEmpty) return fallback;
+
+  String? pick(List<String> keys) {
+    for (final key in keys) {
+      final v = address[key];
+      if (v != null && v.toString().trim().isNotEmpty) {
+        return v.toString().trim();
+      }
+    }
+    return null;
+  }
+
+  final streetNumber = pick(['house_number']);
+  final street = pick(['road', 'pedestrian', 'footway', 'residential']);
+  final streetPart = street == null
+      ? null
+      : (streetNumber == null ? street : '$street $streetNumber');
+  final ward = pick([
+    'quarter',
+    'neighbourhood',
+    'suburb',
+    'city_district',
+    'borough',
+    'hamlet',
+    'isolated_dwelling',
+    'village',
+  ]);
+  final district = pick(['county', 'district', 'municipality']);
+  final province = pick(['state', 'state_district', 'region']);
+  final country = pick(['country']);
+
+  final parts = <String?>[streetPart, ward, district, province, country]
+      .whereType<String>()
+      .where((p) => p.isNotEmpty)
+      .toList();
+  final joined = parts.join(', ');
+  // Dự phòng: nếu không ráp được thì dùng chuỗi đầy đủ của Nominatim.
+  return joined.isNotEmpty ? joined : fallback;
+}
+
+// Reverse geocoding dự phòng bằng BigDataCloud (miễn phí, không cần API key).
+Future<String?> _bigDataCloudReverse(double lat, double lng) async {
+  try {
+    final uri = Uri.parse(
+      'https://api.bigdatacloud.net/data/reverse-geocode-client',
+    ).replace(
+      queryParameters: {
+        'latitude': lat.toStringAsFixed(6),
+        'longitude': lng.toStringAsFixed(6),
+        'localityLanguage': 'vi',
+      },
+    );
+    final response = await http
+        .get(uri)
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    if (data is! Map<String, dynamic>) return null;
+
+    final parts = <String?>[
+      data['locality'],
+      data['city'],
+      data['principalSubdivision'],
+      data['countryName'],
+    ]
+        .whereType<String>()
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    final joined = parts.join(', ');
+    return joined.isNotEmpty ? joined : null;
+  } catch (_) {
+    // Lỗi mạng: trả null, _fetchCurrentLocation sẽ dùng tọa độ làm dự phòng.
+    return null;
+  }
+}
+
   // ------------------------- Dia chi -------------------------
 
   void _addAddress() {
@@ -183,6 +381,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _defaultAddressIndex = _addressCtrls.length - 1;
       }
     });
+  }
+
+  // Xóa địa chỉ: nếu danh sách còn nhiều ô -> xóa hẳn ô đó;
+  // nếu chỉ còn 1 ô cuối -> xóa trắng nội dung (giữ ô nhập lại cho người dùng).
+  void _deleteAddress(int index) {
+    if (_addressCtrls.length > 1) {
+      _removeAddress(index);
+    } else {
+      setState(() {
+        _addressCtrls[index].clear();
+        _defaultAddressIndex = 0;
+      });
+    }
   }
 
   // Bat/Tat "dia chi mac dinh" cho mot dia chi.
@@ -225,6 +436,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       avatarBytes: _avatarBytes,
       addresses: addresses,
       defaultAddressIndex: defaultIndex,
+      locationLat: _locationLat,
+      locationLng: _locationLng,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -325,11 +538,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     context,
                     TextFormField(
                       controller: _nameCtrl,
+                      maxLength: 50,
                       textInputAction: TextInputAction.next,
                       validator: _validateName,
                       decoration: InputDecoration(
                         labelText: context.tr('field_fullname'),
                         prefixIcon: const Icon(Icons.person_outline),
+                        counterText: '',
                       ),
                     ),
                   ),
@@ -338,12 +553,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     context,
                     TextFormField(
                       controller: _emailCtrl,
+                      maxLength: 48,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       validator: _validateEmail,
                       decoration: InputDecoration(
                         labelText: context.tr('field_email'),
                         prefixIcon: const Icon(Icons.email_outlined),
+                        counterText: '',
                       ),
                     ),
                   ),
@@ -352,12 +569,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     context,
                     TextFormField(
                       controller: _phoneCtrl,
+                      maxLength: 10,
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
+                      // Chặn gõ chữ: chỉ cho phép nhập số (0-9).
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                       validator: _validatePhone,
                       decoration: InputDecoration(
                         labelText: context.tr('field_phone'),
                         prefixIcon: const Icon(Icons.phone_outlined),
+                        counterText: '',
                       ),
                     ),
                   ),
@@ -366,12 +589,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     context,
                     TextFormField(
                       controller: _passwordCtrl,
+                      maxLength: 64,
                       obscureText: _obscurePassword,
                       validator: _validatePassword,
                       decoration: InputDecoration(
                         labelText: context.tr('field_password'),
                         hintText: context.tr('hint_password'),
                         prefixIcon: const Icon(Icons.lock_outline),
+                        counterText: '',
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -407,12 +632,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             const SizedBox(height: 16),
 
-            // ------------------------- Dia chi -------------------------
+            // ------------------------- Địa chỉ -------------------------
+            // Gộp "vị trí" + "địa chỉ" thành MỘT mục địa chỉ hoàn chỉnh:
+            //  - "Lấy vị trí hiện tại" lấy tọa độ GPS và tự điền địa chỉ.
+            //  - Các ô bên dưới để người dùng tự nhập / sửa địa chỉ thủ công.
             _SectionTitle(context.tr('addresses')),
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               child: Column(
                 children: [
+                  // Nut lay vi tri truc tiep tu GPS (dien vao o dia chi dau).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: FilledButton.tonalIcon(
+                        onPressed: _locating ? null : _fetchCurrentLocation,
+                        icon: _locating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.gps_fixed),
+                        label: Text(context.tr('location_get_current')),
+                      ),
+                    ),
+                  ),
+                  _divider(context),
                   for (int i = 0; i < _addressCtrls.length; i++) ...[
                     if (i > 0) _divider(context),
                     // O nhap dia chi + nut xoa.
@@ -423,20 +673,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             context,
                             TextField(
                               controller: _addressCtrls[i],
+                              maxLength: 255,
                               textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
                                 hintText: context.tr('address_hint'),
                                 prefixIcon: const Icon(Icons.place_outlined),
+                                counterText: '',
                               ),
                             ),
                           ),
                         ),
                         IconButton(
                           tooltip: context.tr('delete_address'),
-                          disabledColor: colors.outlineVariant,
-                          onPressed: _addressCtrls.length > 1
-                              ? () => _removeAddress(i)
-                              : null,
+                          // Luon hoat dong: xoa trang noi dung (1 o) hoac
+                          // xoa han o do khoi danh sach (nhieu o).
+                          onPressed: () => _deleteAddress(i),
                           icon: const Icon(Icons.delete_outline),
                         ),
                       ],

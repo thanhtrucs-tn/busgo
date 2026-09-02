@@ -17,6 +17,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/user_location.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 
@@ -60,7 +62,7 @@ class MapScreen extends StatefulWidget {
 
 // StatefulWidget vi can giu MapController de dieu chinh camera (zoom, di chuyen).
 class _MapScreenState extends State<MapScreen> {
-  // Dung de dieu khien camera cua ban do.
+  // Dung để điều khiển camera của bản đồ.
   final MapController _mapController = MapController();
 
   // Lay danh sach tram se ve: uu tien du lieu truyen vao, nguoc lai dung du lieu mau.
@@ -69,6 +71,12 @@ class _MapScreenState extends State<MapScreen> {
   // Duong lo trinh that su theo mang luoi giao thong (lay tu OSRM).
   // null = chua tai xong hoac loi mang -> van dung cach noi thang cu.
   List<LatLng>? _roadRoute;
+
+  // Vi tri hien tai cua nguoi dung (null = chua lay duoc / chua bam nut).
+  UserLocation? _currentLocation;
+
+  // Dang lay vi tri GPS hay khong (hien vong xoay tren nut).
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -262,8 +270,214 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // GPS: LẤY VỊ TRÍ HIỆN TẠI CỦA NGƯỜI DÙNG.
+  // Quy trình (theo yêu cầu):
+  //   Bấm nút "Vị trí hiện tại"
+  //   -> Kiểm tra GPS bật chưa
+  //   -> Kiểm tra / xin quyền vị trí
+  //   -> Lấy latitude + longitude
+  //   -> Hiển thị marker "Vị trí của bạn" + di chuyển camera đến đó.
+  // Mọi lỗi đều hiện thông báo tiếng Việt, KHÔNG crash app.
+  // ------------------------------------------------------------
+  Future<void> _locateMe() async {
+    // Chống bấm nhiều lần khi đang xử lý.
+    if (_isLocating) return;
+    setState(() => _isLocating = true);
+
+    // Gọi service GPS tập trung (xin quyền + lấy tọa độ).
+    final result = await LocationService.instance.getCurrentLocation();
+
+    // Bảo vệ: kiểm tra lại sau await.
+    if (!mounted) return;
+    setState(() => _isLocating = false);
+
+    if (result.success && result.location != null) {
+      final loc = result.location!;
+      setState(() => _currentLocation = loc);
+
+      // Di chuyển camera đến vị trí người dùng (zoom 16 để thấy rõ).
+      _mapController.move(LatLng(loc.latitude, loc.longitude), 16);
+    } else {
+      // Lỗi -> hiện thông báo thân thiện, ví dụ:
+      // "Vui lòng bật định vị (GPS) để sử dụng chức năng này".
+      await _showLocationError(result.error ?? 'Không lấy được vị trí');
+    }
+  }
+
+  // Hiện thông báo lỗi GPS.
+  // Nếu quyền bị từ chối VĨNH VIỄN -> hiện thêm nút "Mở Cài đặt" để
+  // người dùng tự cấp lại quyền trong Settings của hệ thống.
+  Future<void> _showLocationError(String message) async {
+    final bool deniedForever = message.contains('vĩnh viễn');
+
+    if (!deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return;
+    }
+
+    // Từ chối vĩnh viễn: cần mở Settings hệ thống.
+    final openSettings = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Quyền vị trí'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Đóng'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Mở Cài đặt'),
+          ),
+        ],
+      ),
+    );
+
+    if (openSettings == true) {
+      // Mở trang Cài đặt của hệ thống để cấp lại quyền.
+      await LocationService.openAppSettings();
+    }
+  }
+
+  // ------------------------------------------------------------
+  // TÌM TRẠM GẦN NHẤT: sử dụng GPS + công thức Haversine.
+  // Vị trí chỉ dùng cục bộ (GPS -> Flutter -> Map), KHÔNG gửi lên server.
+  // Kết quả: hiện danh sách trạm gần nhất kèm khoảng cách (km).
+  // ------------------------------------------------------------
+  Future<void> _showNearbyStops() async {
+    // Bước 1: lấy vị trí hiện tại.
+    final result = await LocationService.instance.getCurrentLocation();
+    if (!mounted) return;
+
+    if (!result.success || result.location == null) {
+      await _showLocationError(result.error ?? 'Không lấy được vị trí');
+      return;
+    }
+
+    final loc = result.location!;
+    final colors = context.colors;
+
+    // Bước 2: tính khoảng cách từ người dùng đến từng trạm,
+    // sắp xếp tăng dần, lấy 3 trạm gần nhất.
+    final sorted = [..._stops].map((stop) {
+      final distance = LocationService.distanceKm(
+        loc,
+        UserLocation(
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+        ),
+      );
+      return (stop: stop, distance: distance);
+    }).toList()
+      ..sort((a, b) => a.distance.compareTo(b.distance));
+
+    final nearest = sorted.take(3).toList();
+
+    // Bước 3: hiện bottom sheet danh sách trạm gần.
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Trạm gần bạn nhất',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: colors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)}',
+                style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              for (final item in nearest)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.place, color: colors.error, size: 22),
+                  ),
+                  title: Text(
+                    item.stop.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    '${item.stop.latitude.toStringAsFixed(4)}, '
+                    '${item.stop.longitude.toStringAsFixed(4)}',
+                  ),
+                  trailing: Text(
+                    // Ví dụ: "0.8 km" - làm tròn 1 chữ số thập phân.
+                    '${item.distance.toStringAsFixed(1)} km',
+                    style: TextStyle(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Marker "Vị trí của bạn" (chấm xanh nổi bật trên bản đồ).
+  List<Marker> _buildUserMarkers() {
+    if (_currentLocation == null) return [];
+    return [
+      Marker(
+        point: LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+        width: 40,
+        height: 40,
+        // Chấm xanh dương truyền thống kiểu "vị trí của tôi".
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.25),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: const BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+              border: Border.fromBorderSide(
+                BorderSide(color: Colors.white, width: 3),
+              ),
+            ),
+            child: const Icon(Icons.my_location, size: 10, color: Colors.white),
+          ),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Mau lay tu theme de giao dien hien thi dung che do sang/toi.
+    final colors = context.colors;
+
     // Kiem tra loi: neu khong co du lieu toa do thi hien thong bao thay vi ban do rong.
     if (_stops.isEmpty) {
       return Scaffold(
@@ -301,10 +515,47 @@ class _MapScreenState extends State<MapScreen> {
             source:
                 Text('Bản đồ © Esri — Dữ liệu © OpenStreetMap contributors'),
           ),
-          // Lop marker cac tram.
-          MarkerLayer(markers: _buildMarkers()),
+          // Lop marker cac tram + marker "Vị trí của bạn".
+          MarkerLayer(markers: [..._buildMarkers(), ..._buildUserMarkers()]),
           // Lop duong lo trinh noi cac tram.
           PolylineLayer(polylines: _buildPolylines()),
+        ],
+      ),
+      // Nhom nut GPS o goc duoi phai:
+      //  1. "VỊ TRÍ HIỆN TẠI" - lay GPS + di chuyen camera
+      //  2. "Tram gan toi"     - GPS + tinh khoang cach den tram gan nhat
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Nút "Vị trí hiện tại" (theo yêu cầu).
+          FloatingActionButton.extended(
+            heroTag: 'locate_me',
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
+            onPressed: _isLocating ? null : _locateMe,
+            icon: _isLocating
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.my_location),
+            label: const Text('Vị trí hiện tại'),
+          ),
+          const SizedBox(height: 10),
+          // Nút phụ "Trạm gần tôi" (GPS + Haversine, không cần server).
+          FloatingActionButton.small(
+            heroTag: 'nearby_stops',
+            backgroundColor: colors.surface,
+            foregroundColor: colors.primary,
+            tooltip: 'Trạm gần tôi',
+            onPressed: _showNearbyStops,
+            child: const Icon(Icons.near_me),
+          ),
         ],
       ),
     );

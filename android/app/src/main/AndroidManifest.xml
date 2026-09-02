@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Quyen truy cap mang de goi API dang nhap/dang ky (MySQL). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Quyen truy cap vi tri (GPS) de lay vi tri hien tai cua nguoi dung.
+         ACCESS_COARSE_LOCATION: vi tri gan dung (tram/bap dien thoai).
+         ACCESS_FINE_LOCATION : vi tri chinh xac (GPS that). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Quyen truy cap bo nho / thu vien anh (Android <= 12; tu Android 13
          image_picker dung Photo Picker cua he thong, khong can quyen). -->
     <uses-permission

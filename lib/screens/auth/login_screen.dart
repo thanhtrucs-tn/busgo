@@ -77,13 +77,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
 
-    // Lấy dữ liệu từ ô nhập.
-    final username = _usernameController.text.trim();
+    // Lấy dữ liệu từ ô nhập (tên đăng nhập HOẶC email).
+    final identifier = _usernameController.text.trim();
     final password = _passwordController.text;
 
-    // Gọi API đăng nhập trên máy chủ (kiểm tra với database MySQL).
+    // Gọi API đăng nhập trên máy chủ:
+    // backend kiểm tra tài khoản + mật khẩu (bcrypt), tạo JWT,
+    // AuthService lưu token vào secure storage và trả về user.
     final result = await AuthService.instance.login(
-      username: username,
+      identifier: identifier,
       password: password,
     );
 
@@ -95,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Lưu (hoặc xóa) tên đăng nhập tùy theo ô tích "Ghi nhớ đăng nhập".
       await RememberMeService.instance.saveRemembered(
         remembered: _rememberMe,
-        username: username,
+        username: identifier,
       );
 
       // Ghi nhận phiên đăng nhập để các màn hình khác dùng chung.
@@ -188,15 +190,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Ô nhập TÊN ĐĂNG NHẬP.
-                  // maxLength 32 khớp với trường username VARCHAR(32) trong database.
+                  // Ô nhập TÊN ĐĂNG NHẬP (hoặc email).
+                  // maxLength đủ cho cả username (32) lẫn email (48).
                   TextFormField(
                     controller: _usernameController,
-                    maxLength: 32,
+                    maxLength: 48,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Tên đăng nhập',
-                      hintText: 'Nhập tên đăng nhập',
+                      hintText: 'Tên đăng nhập hoặc email',
                       prefixIcon: Icon(Icons.person_outline),
                       counterText: '', // Ẩn bộ đếm ký tự cho gọn giao diện.
                     ),

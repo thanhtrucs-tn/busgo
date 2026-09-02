@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/app_localizations.dart';
-import 'screens/auth/login_screen.dart';
+import 'screens/auth/auth_gate.dart';
 import 'services/favorite_service.dart';
 import 'services/profile_service.dart';
 import 'services/remember_me_service.dart';
@@ -77,9 +77,10 @@ class _BusGoAppState extends State<BusGoApp> {
       themeMode: SettingsService.instance.darkMode
           ? ThemeMode.dark
           : ThemeMode.light,
-      // Man hinh dau tien hien thi khi mo app la man hinh DANG NHAP.
-      // Sau khi dang nhap thanh cong se vao thang trang chu (HomeScreen).
-      home: const LoginScreen(),
+      // Man hinh dau tien hien thi khi mo app la AUTH_GATE:
+      // kiem tra JWT trong secure storage, hop le thi vao trang chu,
+      // khong thi ve man hinh dang nhap.
+      home: const AuthGate(),
     );
   }
 }
