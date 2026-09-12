@@ -1,174 +1,229 @@
 // statistics_screen.dart
 // Màn hình THỐNG KÊ của ứng dụng BusGo.
-// Dữ liệu lấy từ các nguồn dùng chung của app:
-//  - sampleRoutes / sampleStops / sampleBuses (dữ liệu mẫu).
-//  - FavoriteService (số tuyến yêu thích).
-// Hiển thị: tổng quan (4 thẻ số), bảng xếp hạng trạm đông tuyến nhất,
+// Dữ liệu lấy từ API backend (tuyến, trạm, xe) + FavoriteService.
+// Hiển thị: tổng quan (4 thẻ số), trạm có nhiều tuyến nhất,
 // tuyến nhiều trạm nhất và xe đang chạy theo từng tuyến.
 
 import 'package:flutter/material.dart';
 
-import '../data/sample_data.dart';
 import '../l10n/app_localizations.dart';
+import '../models/bus.dart';
+import '../models/bus_route.dart';
+import '../models/bus_stop.dart';
 import '../services/favorite_service.dart';
+import '../services/transit_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Số tuyến đi qua từng trạm: { idTrạm: sốTuyến }.
-    final Map<String, int> routeCountByStop = <String, int>{};
-    for (final route in sampleRoutes) {
-      for (final stop in route.stops) {
-        routeCountByStop[stop.id] = (routeCountByStop[stop.id] ?? 0) + 1;
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  bool _loading = true;
+  String? _error;
+
+  List<BusRoute> _routes = const [];
+  List<BusStop> _stops = const [];
+
+  // Số xe đang hoạt động theo từng tuyến: { idTuyến: sốXe }.
+  final Map<String, int> _busesByRoute = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final routes = await TransitService.instance.fetchRoutes();
+      final stops = await TransitService.instance.fetchStops();
+
+      // Lấy xe của từng tuyến (số tuyến ít nên gọi tuần tự là đủ).
+      final busesByRoute = <String, int>{};
+      for (final route in routes) {
+        final buses = await TransitService.instance.fetchRouteBuses(route.id);
+        busesByRoute[route.id] =
+            buses.where((Bus b) => b.isActive).length;
       }
+
+      if (!mounted) return;
+      setState(() {
+        _routes = routes;
+        _stops = stops;
+        _busesByRoute
+          ..clear()
+          ..addAll(busesByRoute);
+        _loading = false;
+      });
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            err is TransitException ? err.message : context.tr('load_error');
+        _loading = false;
+      });
     }
+  }
 
-    // Xếp hạng trạm: giảm dần theo số tuyến đi qua.
-    final topStops = sampleStops
-        .map((stop) => (stop: stop, count: routeCountByStop[stop.id] ?? 0))
-        .where((item) => item.count > 0)
-        .toList()
-      ..sort((a, b) => b.count.compareTo(a.count));
-
-    // Xếp hạng tuyến: giảm dần theo số trạm dừng.
-    final topRoutes = List.of(sampleRoutes)
-      ..sort((a, b) => b.stops.length.compareTo(a.stops.length));
-
-    // Số xe đang chạy theo từng tuyến: { idTuyến: sốXe }.
-    final busesByRoute = <String, int>{};
-    for (final bus in sampleBuses) {
-      busesByRoute[bus.routeId] = (busesByRoute[bus.routeId] ?? 0) + 1;
-    }
-
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('stats_title'))),
-      body: ListView(
-        padding: const EdgeInsets.all(14),
-        children: [
-          // ============================ TỔNG QUAN ============================
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.route_outlined,
-                  value: '${sampleRoutes.length}',
-                  label: context.tr('stats_total_routes'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.directions_bus_outlined,
-                  value: '${sampleBuses.length}',
-                  label: context.tr('stats_buses_active'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.place_outlined,
-                  value: '${sampleStops.length}',
-                  label: context.tr('stats_total_stops'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ListenableBuilder(
-                  listenable: FavoriteService.instance,
-                  builder: (context, _) => _StatCard(
-                    icon: Icons.favorite,
-                    value: '${FavoriteService.instance.favoriteRoutes.length}',
-                    label: context.tr('stats_favorite_route'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? ErrorState(message: _error!, onRetry: _load)
+              : _buildBody(context),
+    );
+  }
 
-          // ========================= TRẠM ĐÔNG TUYẾN NHẤT =========================
-          _SectionHeader(
-            icon: Icons.leaderboard_outlined,
-            title: context.tr('stats_top_stops'),
-          ),
-          if (topStops.isEmpty)
-            EmptyState(
-              icon: Icons.place_outlined,
-              message: context.tr('stats_no_data'),
-            )
-          else
-            _BarList(
-              items: [
-                for (final item in topStops)
-                  _BarItem(
-                    label: '${item.stop.name} · ${item.stop.address}',
-                    value: item.count,
-                    suffix: context.tr(
-                      'stats_stop_routes',
-                      params: {'count': '${item.count}'},
-                    ),
-                  ),
-              ],
+  Widget _buildBody(BuildContext context) {
+    // Xếp hạng trạm: giảm dần theo số tuyến đi qua.
+    final topStops = List.of(_stops)
+      ..sort((a, b) => b.routeCount.compareTo(a.routeCount));
+    final stopsWithRoutes = topStops.where((s) => s.routeCount > 0).toList();
+
+    // Xếp hạng tuyến: giảm dần theo số trạm dừng.
+    final topRoutes = List.of(_routes)
+      ..sort((a, b) => b.displayStopCount.compareTo(a.displayStopCount));
+
+    // Tổng số xe đang hoạt động.
+    final totalActiveBuses =
+        _busesByRoute.values.fold<int>(0, (sum, count) => sum + count);
+
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        // ============================ TỔNG QUAN ============================
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.route_outlined,
+                value: '${_routes.length}',
+                label: context.tr('stats_total_routes'),
+              ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.directions_bus_outlined,
+                value: '$totalActiveBuses',
+                label: context.tr('stats_buses_active'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.place_outlined,
+                value: '${_stops.length}',
+                label: context.tr('stats_total_stops'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ListenableBuilder(
+                listenable: FavoriteService.instance,
+                builder: (context, _) => _StatCard(
+                  icon: Icons.favorite,
+                  value: '${FavoriteService.instance.favoriteCount}',
+                  label: context.tr('stats_favorite_route'),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
 
-          const SizedBox(height: 18),
-
-          // ========================= TUYẾN NHIỀU TRẠM NHẤT =========================
-          _SectionHeader(
-            icon: Icons.alt_route,
-            title: context.tr('stats_top_routes'),
-          ),
+        // ========================= TRẠM ĐÔNG TUYẾN NHẤT =========================
+        _SectionHeader(
+          icon: Icons.leaderboard_outlined,
+          title: context.tr('stats_top_stops'),
+        ),
+        if (stopsWithRoutes.isEmpty)
+          EmptyState(
+            icon: Icons.place_outlined,
+            message: context.tr('stats_no_data'),
+          )
+        else
           _BarList(
             items: [
-              for (final route in topRoutes)
+              for (final stop in stopsWithRoutes.take(8))
                 _BarItem(
-                  label: 'Tuyến ${route.routeNumber} · ${route.name}',
-                  value: route.stops.length,
+                  label: '${stop.name} · ${stop.address}',
+                  value: stop.routeCount,
                   suffix: context.tr(
-                    'stats_route_stops',
-                    params: {'count': '${route.stops.length}'},
+                    'stats_stop_routes',
+                    params: {'count': '${stop.routeCount}'},
                   ),
                 ),
             ],
           ),
 
-          const SizedBox(height: 18),
+        const SizedBox(height: 18),
 
-          // ========================= XE ĐANG CHẠY THEO TUYẾN =========================
-          _SectionHeader(
-            icon: Icons.directions_bus,
-            title: context.tr('stats_buses_by_route'),
-          ),
-          if (busesByRoute.isEmpty)
-            EmptyState(
-              icon: Icons.directions_bus_outlined,
-              message: context.tr('stats_no_buses'),
-            )
-          else
-            _BarList(
-              items: [
-                for (final route in sampleRoutes)
-                  if ((busesByRoute[route.id] ?? 0) > 0)
-                    _BarItem(
-                      label: 'Tuyến ${route.routeNumber} · ${route.name}',
-                      value: busesByRoute[route.id]!,
-                      suffix: context.tr(
-                        'bus_count',
-                        params: {'count': '${busesByRoute[route.id]}'},
-                      ),
+        // ========================= TUYẾN NHIỀU TRẠM NHẤT =========================
+        _SectionHeader(
+          icon: Icons.alt_route,
+          title: context.tr('stats_top_routes'),
+        ),
+        _BarList(
+          items: [
+            for (final route in topRoutes)
+              _BarItem(
+                label: 'Tuyến ${route.routeNumber} · ${route.name}',
+                value: route.displayStopCount,
+                suffix: context.tr(
+                  'stats_route_stops',
+                  params: {'count': '${route.displayStopCount}'},
+                ),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        // ========================= XE ĐANG CHẠY THEO TUYẾN =========================
+        _SectionHeader(
+          icon: Icons.directions_bus,
+          title: context.tr('stats_buses_by_route'),
+        ),
+        if (totalActiveBuses == 0)
+          EmptyState(
+            icon: Icons.directions_bus_outlined,
+            message: context.tr('stats_no_buses'),
+          )
+        else
+          _BarList(
+            items: [
+              for (final route in _routes)
+                if ((_busesByRoute[route.id] ?? 0) > 0)
+                  _BarItem(
+                    label: 'Tuyến ${route.routeNumber} · ${route.name}',
+                    value: _busesByRoute[route.id]!,
+                    suffix: context.tr(
+                      'bus_count',
+                      params: {'count': '${_busesByRoute[route.id]}'},
                     ),
-              ],
-            ),
-        ],
-      ),
+                  ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -255,14 +310,18 @@ class _SectionHeader extends StatelessWidget {
 
 // Một hàng số liệu trong bảng xếp hạng.
 class _BarItem {
-  const _BarItem({required this.label, required this.value, required this.suffix});
+  const _BarItem({
+    required this.label,
+    required this.value,
+    required this.suffix,
+  });
 
   final String label;
   final int value;
   final String suffix;
 }
 
-// Danh sách xếp hạng dạng thanh ngang: mỗi mục là 1 thanh tỉ lệ với giá trị lớn nhất.
+// Danh sách xếp hạng dạng thanh ngang.
 class _BarList extends StatelessWidget {
   const _BarList({required this.items});
 
@@ -273,9 +332,8 @@ class _BarList extends StatelessWidget {
     final colors = context.colors;
     if (items.isEmpty) return const SizedBox.shrink();
 
-    final int maxValue = items
-        .map((item) => item.value)
-        .reduce((a, b) => a > b ? a : b);
+    final int maxValue =
+        items.map((item) => item.value).reduce((a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),

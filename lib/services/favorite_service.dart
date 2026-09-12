@@ -12,9 +12,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/sample_data.dart';
-import '../models/bus_route.dart';
-
 class FavoriteService extends ChangeNotifier {
   // Singleton: chi co mot doi tuong duy nhat trong ca app.
   FavoriteService._();
@@ -34,6 +31,12 @@ class FavoriteService extends ChangeNotifier {
 
   // Kiem tra mot tuyen co duoc yeu thich hay khong.
   bool isFavorite(String routeId) => _favoriteIds.contains(routeId);
+
+  // So luong tuyen dang duoc yeu thich.
+  int get favoriteCount => _favoriteIds.length;
+
+  // Danh sach id tuyen yeu thich (chi de doc, khong sua truc tiep).
+  Set<String> get favoriteIds => Set.unmodifiable(_favoriteIds);
 
   // Nap yeu thich cua DUNG tai khoan vua dang nhap.
   // Xoa danh sach cu ngay tu dau de khong hien nham cua tai khoan truoc.
@@ -81,10 +84,5 @@ class FavoriteService extends ChangeNotifier {
   Future<void> purgeLegacyCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyKey);
-  }
-
-  // Lay danh sach cac tuyen yeu thich (doi chieu voi sampleRoutes).
-  List<BusRoute> get favoriteRoutes {
-    return sampleRoutes.where((r) => _favoriteIds.contains(r.id)).toList();
   }
 }

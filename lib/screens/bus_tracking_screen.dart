@@ -1,19 +1,24 @@
 // bus_tracking_screen.dart
-// Man hinh theo doi vi tri cac xe buyt tren ban do.
-// Day la DU LIEU MO PHONG (xe tu dong di chuyen), khong phai GPS that.
+// Màn hình THEO DÕI XE BUÝT theo thời gian thực.
+// - Vị trí ban đầu: lấy từ API GET /api/routes/:routeId/buses.
+// - Cập nhật tiếp theo: nhận qua Socket.IO (sự kiện bus:location-updated).
+// - Dữ liệu hiện do bộ mô phỏng GPS (tools/gps-simulator) tạo ra, không phải
+//   GPS thật của xe.
 
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/tile_config.dart';
-import '../data/sample_data.dart';
 import '../l10n/app_localizations.dart';
 import '../models/bus.dart';
+import '../models/bus_location.dart';
+import '../services/socket_service.dart';
+import '../services/transit_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_state.dart';
 
 class BusTrackingScreen extends StatefulWidget {
   const BusTrackingScreen({super.key});
@@ -25,252 +30,166 @@ class BusTrackingScreen extends StatefulWidget {
 class _BusTrackingScreenState extends State<BusTrackingScreen> {
   final MapController _mapController = MapController();
 
-  // Danh sach cac xe dang duoc theo doi (co vi tri hien tai).
-  late List<_TrackedBus> _trackedBuses;
+  bool _loading = true;
+  String? _error;
 
-  // Bo hen gio: cu moi 2 giay cap nhat vi tri mot lan.
-  Timer? _timer;
+  // Vị trí mới nhất của mỗi xe: { busId: Bus }.
+  final Map<String, Bus> _buses = {};
+
+  // Các tuyến đã tham gia phòng Socket.IO (để rời đúng khi thoát).
+  final Set<int> _joinedRoutes = {};
+
+  StreamSubscription<BusLocation>? _locationSub;
+  StreamSubscription<BusStatusUpdate>? _statusSub;
+  StreamSubscription<bool>? _connectionSub;
+
+  bool _connected = true;
+  bool _mapReady = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Khoi tao vi tri ban dau cho tung xe tu du lieu mau.
-    _trackedBuses = sampleBuses.map((bus) {
-      return _TrackedBus(
-        info: bus,
-        position: LatLng(bus.latitude, bus.longitude),
-        waypoints: _buildWaypoints(bus.routeId),
-      );
-    }).toList();
-
-    // Cap nhat vi tri xe theo chu ky.
-    _timer = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => _updatePositions(),
-    );
+    _load();
   }
 
   @override
   void dispose() {
-    // Luon huy Timer khi man hinh bi dong de tranh loi.
-    _timer?.cancel();
+    // Hủy listener + rời mọi phòng Socket.IO để không rò rỉ.
+    _locationSub?.cancel();
+    _statusSub?.cancel();
+    _connectionSub?.cancel();
+    for (final id in _joinedRoutes) {
+      SocketService.instance.leaveRoute(id);
+    }
+    _joinedRoutes.clear();
     super.dispose();
   }
 
-  // Lay cac diem (LatLng) tren tuyen cua xe de xe di theo.
-  List<LatLng> _buildWaypoints(String routeId) {
-    for (final route in sampleRoutes) {
-      if (route.id == routeId) {
-        return route.stops
-            .map((s) => LatLng(s.latitude, s.longitude))
-            .toList();
-      }
-    }
-    return [];
-  }
-
-  // Mo phong xe di chuyen den tram tiep theo.
-  void _updatePositions() {
+  // Tải tuyến + xe ban đầu rồi bắt đầu theo dõi realtime.
+  Future<void> _load() async {
     setState(() {
-      for (final tracked in _trackedBuses) {
-        if (tracked.waypoints.isEmpty) continue;
+      _loading = true;
+      _error = null;
+    });
 
-        final target = tracked.waypoints[tracked.targetIndex % tracked.waypoints.length];
-
-        final dLat = target.latitude - tracked.position.latitude;
-        final dLng = target.longitude - tracked.position.longitude;
-        final distance = sqrt(dLat * dLat + dLng * dLng);
-
-        // Moi lan cap nhat xe di duoc mot doan nho.
-        const double step = 0.002;
-
-        if (distance < step) {
-          // Da den tram, chuyen sang tram tiep theo.
-          tracked.position = target;
-          tracked.targetIndex++;
-        } else {
-          // Di chuyen mot buoc ve phia tram.
-          tracked.position = LatLng(
-            tracked.position.latitude + dLat / distance * step,
-            tracked.position.longitude + dLng / distance * step,
-          );
+    try {
+      final routes = await TransitService.instance.fetchRoutes();
+      final buses = <String, Bus>{};
+      for (final route in routes) {
+        final routeBuses =
+            await TransitService.instance.fetchRouteBuses(route.id);
+        for (final bus in routeBuses) {
+          buses[bus.id] = bus;
         }
       }
+      if (!mounted) return;
+
+      setState(() {
+        _buses
+          ..clear()
+          ..addAll(buses);
+        _loading = false;
+      });
+
+      _subscribe();
+    } catch (err) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            err is TransitException ? err.message : context.tr('load_error');
+        _loading = false;
+      });
+    }
+  }
+
+  // Đăng ký nghe sự kiện realtime và tham gia phòng của mọi tuyến.
+  void _subscribe() {
+    _locationSub =
+        SocketService.instance.locationUpdates.listen(_onBusLocation);
+    _statusSub = SocketService.instance.statusUpdates.listen(_onBusStatus);
+    _connectionSub ??=
+        SocketService.instance.connectionUpdates.listen((connected) {
+      if (mounted) setState(() => _connected = connected);
+    });
+
+    for (final route in _routesOfBuses()) {
+      final id = int.tryParse(route);
+      if (id != null && _joinedRoutes.add(id)) {
+        SocketService.instance.joinRoute(id);
+      }
+    }
+  }
+
+  // Danh sách routeId hiện có xe (để tham gia phòng).
+  Set<String> _routesOfBuses() {
+    return _buses.values.map((bus) => bus.routeId).toSet();
+  }
+
+  void _onBusLocation(BusLocation location) {
+    if (location.isStale()) return;
+
+    final existing = _buses[location.busId];
+    if (!mounted) return;
+    setState(() {
+      _buses[location.busId] =
+          (existing ?? _busFromLocation(location)).copyWith(
+        busNumber: location.busCode.isNotEmpty ? location.busCode : null,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.updatedAt,
+      );
     });
   }
 
-  // Tao marker cho tung xe.
-  List<Marker> _buildBusMarkers() {
-    return _trackedBuses.map((tracked) {
-      return Marker(
-        point: tracked.position,
-        width: 64,
-        height: 70,
-        child: GestureDetector(
-          onTap: () => _showBusInfo(tracked),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: context.colors.error,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.directions_bus,
-                  color: context.colors.error,
-                  size: 18,
-                ),
-              ),
-              Text(
-                tracked.info.busNumber,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: context.colors.error,
-                  shadows: const [
-                    Shadow(color: Colors.white, blurRadius: 3),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }).toList();
+  void _onBusStatus(BusStatusUpdate update) {
+    final existing = _buses[update.busId];
+    if (existing == null || !mounted) return;
+    setState(() {
+      _buses[update.busId] = existing.copyWith(status: update.status);
+    });
   }
 
-  // Hien thong tin xe khi cham vao marker.
-  void _showBusInfo(_TrackedBus tracked) {
-    final colors = context.colors;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: colors.error,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.directions_bus,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      context.tr('bus_label', params: {
-                        'number': tracked.info.busNumber,
-                      }),
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    size: 16,
-                    color: colors.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    context.tr('status_active'),
-                    style: TextStyle(fontSize: 13.5, color: colors.onSurface),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.my_location,
-                    size: 16,
-                    color: colors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${context.tr('position_label')} '
-                    '${tracked.position.latitude.toStringAsFixed(5)}, '
-                    '${tracked.position.longitude.toStringAsFixed(5)}',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                context.tr('simulated_note'),
-                style: TextStyle(
-                  color: colors.outline,
-                  fontStyle: FontStyle.italic,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  Bus _busFromLocation(BusLocation location) {
+    return Bus(
+      id: location.busId,
+      busNumber:
+          location.busCode.isNotEmpty ? location.busCode : location.busId,
+      routeId: location.routeId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      status: 'RUNNING',
+      speed: location.speed,
+      heading: location.heading,
+      updatedAt: location.updatedAt,
     );
   }
 
-  // Di chuyen camera de nhin thay cac xe.
+  // Căn camera bao trọn các xe (chỉ gọi khi cần, không gọi mỗi lần xe chạy).
   void _fitToBuses() {
-    if (_trackedBuses.isEmpty) return;
+    if (!_mapReady) return;
 
-    if (_trackedBuses.length == 1) {
-      _mapController.move(_trackedBuses.first.position, 14);
+    final buses = _buses.values.where((b) => b.hasLocation).toList();
+    if (buses.isEmpty) return;
+
+    if (buses.length == 1) {
+      _mapController.move(
+        LatLng(buses.first.latitude, buses.first.longitude),
+        14,
+      );
       return;
     }
 
-    double minLat = _trackedBuses.first.position.latitude;
-    double maxLat = _trackedBuses.first.position.latitude;
-    double minLng = _trackedBuses.first.position.longitude;
-    double maxLng = _trackedBuses.first.position.longitude;
-
-    for (final tracked in _trackedBuses) {
-      if (tracked.position.latitude < minLat) minLat = tracked.position.latitude;
-      if (tracked.position.latitude > maxLat) maxLat = tracked.position.latitude;
-      if (tracked.position.longitude < minLng) minLng = tracked.position.longitude;
-      if (tracked.position.longitude > maxLng) maxLng = tracked.position.longitude;
+    double minLat = buses.first.latitude;
+    double maxLat = buses.first.latitude;
+    double minLng = buses.first.longitude;
+    double maxLng = buses.first.longitude;
+    for (final bus in buses) {
+      if (bus.latitude < minLat) minLat = bus.latitude;
+      if (bus.latitude > maxLat) maxLat = bus.latitude;
+      if (bus.longitude < minLng) minLng = bus.longitude;
+      if (bus.longitude > maxLng) maxLng = bus.longitude;
     }
 
     _mapController.fitCamera(
@@ -279,8 +198,160 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
           LatLng(minLat, minLng),
           LatLng(maxLat, maxLng),
         ),
-        padding: const EdgeInsets.all(60),
+        padding: const EdgeInsets.all(70),
       ),
+    );
+  }
+
+  List<Marker> _buildBusMarkers() {
+    final colors = context.colors;
+
+    return [
+      for (final bus in _buses.values)
+        if (bus.hasLocation)
+          Marker(
+            point: LatLng(bus.latitude, bus.longitude),
+            width: 72,
+            height: 60,
+            child: GestureDetector(
+              onTap: () => _showBusInfo(bus),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.error, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.directions_bus,
+                      color: colors.error,
+                      size: 18,
+                    ),
+                  ),
+                  Text(
+                    bus.busNumber,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: colors.error,
+                      shadows: const [
+                        Shadow(color: Colors.white, blurRadius: 3),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    ];
+  }
+
+  void _showBusInfo(Bus bus) {
+    final colors = context.colors;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: colors.error,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.directions_bus,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        context.tr('bus_label',
+                            params: {'number': bus.busNumber}),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      context.tr('status_active'),
+                      style: TextStyle(fontSize: 13.5, color: colors.onSurface),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.my_location,
+                      size: 16,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${context.tr('position_label')} '
+                      '${bus.latitude.toStringAsFixed(5)}, '
+                      '${bus.longitude.toStringAsFixed(5)}',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  context.tr('simulated_note'),
+                  style: TextStyle(
+                    color: colors.outline,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -288,73 +359,79 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('tracking_title'))),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: const LatLng(10.7756, 106.6985),
-              initialZoom: 12,
-              onMapReady: _fitToBuses,
-            ),
-            children: [
-              TileLayer(
-                // Server tile Esri World Street Map (mien phi, khong can API key).
-                // CartoDB basemaps gio bao loi "API KEY REQUIRED" khi khong co key.
-                urlTemplate:
-                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-                userAgentPackageName: 'com.example.busgo',
-              ),
-              MarkerLayer(markers: _buildBusMarkers()),
-
-              // Ghi nguon ban do.
-              const SimpleAttributionWidget(
-                source: Text('Bản đồ © Esri — Dữ liệu © OpenStreetMap contributors'),
-              ),
-            ],
-          ),
-
-          // Bang thong bao du lieu mo phong o goc tren.
-          Positioned(
-            top: 12,
-            left: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      context.tr('tracking_banner'),
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? ErrorState(message: _error!, onRetry: _load)
+              : Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: const LatLng(10.7756, 106.6985),
+                        initialZoom: 12,
+                        onMapReady: () {
+                          _mapReady = true;
+                          _fitToBuses();
+                        },
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: TileConfig.current.urlTemplate,
+                          userAgentPackageName:
+                              TileConfig.current.userAgentPackageName,
+                        ),
+                        MarkerLayer(markers: _buildBusMarkers()),
+                        SimpleAttributionWidget(
+                          source: Text(TileConfig.current.attribution),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+
+                    // Banner mô tả nguồn dữ liệu / trạng thái kết nối.
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (_connected
+                                  ? context.colors.primary
+                                  : context.colors.error)
+                              .withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _connected
+                                  ? Icons.info_outline
+                                  : Icons.wifi_off,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _connected
+                                    ? context.tr('tracking_banner')
+                                    : context.tr('socket_disconnected'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
     );
   }
-}
-
-// Lop luu thong tin theo doi cua mot xe.
-class _TrackedBus {
-  final Bus info; // thong tin goc (bien so, trang thai)
-  final List<LatLng> waypoints; // cac diem xe se di qua
-  LatLng position; // vi tri hien tai
-  int targetIndex = 0; // chi so tram tiep theo
-
-  _TrackedBus({
-    required this.info,
-    required this.position,
-    required this.waypoints,
-  });
 }

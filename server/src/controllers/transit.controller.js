@@ -20,6 +20,11 @@ import RoutePoint from '../models/RoutePoint.js';
 import Bus from '../models/Bus.js';
 import BusLocation from '../models/BusLocation.js';
 import { failure, success } from '../utils/response.util.js';
+import {
+  haversineMeters,
+  nearestPointIndex,
+  pathDistanceMeters,
+} from '../utils/geo.util.js';
 
 // Hàm cấp phát: đọc routeId/direction từ tham số và kiểm tra hợp lệ.
 // Nếu lỗi -> trả failure và ngừng; nếu ok -> gọi callback với routeId, direction.
@@ -50,7 +55,21 @@ export async function listRoutes(req, res) {
     const routes = await Route.findAll({
       order: [['routeCode', 'ASC']],
     });
-    const data = routes.map((r) => publicRoute(r));
+
+    // Đếm số trạm của mỗi tuyến ở chiều đi (direction = 0) bằng MỘT truy vấn.
+    const routeStops = await RouteStop.findAll({
+      where: { direction: 0 },
+      attributes: ['routeId', 'stopId'],
+    });
+    const stopCountByRoute = {};
+    for (const rs of routeStops) {
+      stopCountByRoute[rs.routeId] = (stopCountByRoute[rs.routeId] || 0) + 1;
+    }
+
+    const data = routes.map((r) => ({
+      ...publicRoute(r),
+      stopCount: stopCountByRoute[r.id] || 0,
+    }));
     return success(res, data, 'Lấy danh sách tuyến thành công');
   } catch (err) {
     console.error('[Lỗi danh sách tuyến]', err.message);
@@ -69,7 +88,14 @@ export async function getRoute(req, res) {
       if (!route) {
         return failure(res, 'Không tìm thấy tuyến xe buýt', 404);
       }
-      return success(res, publicRoute(route), 'Lấy thông tin tuyến thành công');
+      const stopCount = await RouteStop.count({
+        where: { routeId, direction: 0 },
+      });
+      return success(
+        res,
+        { ...publicRoute(route), stopCount },
+        'Lấy thông tin tuyến thành công',
+      );
     } catch (err) {
       console.error('[Lỗi chi tiết tuyến]', err.message);
       return failure(res, 'Lỗi lấy thông tin tuyến, vui lòng thử lại sau', 500);
@@ -168,7 +194,22 @@ export async function listStops(req, res) {
     }
 
     const stops = await Stop.findAll({ where, order: [['stopName', 'ASC']] });
-    return success(res, stops.map(publicStop), 'Lấy danh sách trạm thành công');
+
+    // Đếm số tuyến khác nhau đi qua mỗi trạm bằng MỘT truy vấn.
+    const routeStops = await RouteStop.findAll({
+      attributes: ['stopId', 'routeId'],
+    });
+    const routesByStop = {};
+    for (const rs of routeStops) {
+      if (!routesByStop[rs.stopId]) routesByStop[rs.stopId] = new Set();
+      routesByStop[rs.stopId].add(rs.routeId);
+    }
+
+    const data = stops.map((s) => ({
+      ...publicStop(s),
+      routeCount: routesByStop[s.id] ? routesByStop[s.id].size : 0,
+    }));
+    return success(res, data, 'Lấy danh sách trạm thành công');
   } catch (err) {
     console.error('[Lỗi danh sách trạm]', err.message);
     return failure(res, 'Lỗi lấy danh sách trạm, vui lòng thử lại sau', 500);
@@ -194,12 +235,7 @@ export async function getStopDetail(req, res) {
     // Các routes đi qua trạm này (qua route_stops), kèm chiều + thứ tự.
     const routeStops = await RouteStop.findAll({
       where: { stopId },
-      include: [
-        {
-          model: Route,
-          attributes: ['id', 'routeCode', 'routeName', 'startPoint', 'endPoint', 'color'],
-        },
-      ],
+      include: [{ model: Route }],
       order: [['direction', 'ASC'], ['stopOrder', 'ASC']],
     });
 
@@ -238,12 +274,7 @@ export async function getStopRoutes(req, res) {
 
     const routeStops = await RouteStop.findAll({
       where: { stopId },
-      include: [
-        {
-          model: Route,
-          attributes: ['id', 'routeCode', 'routeName', 'startPoint', 'endPoint', 'color'],
-        },
-      ],
+      include: [{ model: Route }],
       order: [['direction', 'ASC'], ['stopOrder', 'ASC']],
     });
 
@@ -265,16 +296,26 @@ export async function getStopRoutes(req, res) {
 // Dự kiến xe sắp tới trạm.
 // GET /api/stops/:stopId/arrivals
 //
-// Chưa có bảng giờ chạy cố định nên ước lượng đơn giản:
-//   - tìm các tuyến/chiều đi qua trạm
-//   - lấy xe đang chạy (RUNNING) của tuyến và vị trí mới nhất
-//   - thời gian ~ = khoảng cách từ xe tới trạm / tốc độ (mặc định 20 km/h)
+// Ước lượng CƠ BẢN (không phải dữ liệu giao thông thực tế):
+//   1. Lấy chuỗi route_points của tuyến theo chiều đi qua trạm.
+//   2. Tìm điểm gần nhất trên chuỗi với vị trí xe và với trạm.
+//   3. Cộng khoảng cách các đoạn còn lại từ xe đến trạm.
+//   4. Chia cho vận tốc hiện tại (nếu hợp lệ) hoặc vận tốc trung bình.
+//   5. Cộng thêm thời gian dừng trung bình ở các trạm phía trước.
+//   6. Bỏ qua xe đã đi qua trạm trong chiều đó hoặc vị trí quá cũ.
 // ------------------------------------------------------------
 export async function getStopArrivals(req, res) {
   const stopId = Number(req.params.stopId);
   if (!Number.isInteger(stopId) || stopId <= 0) {
     return failure(res, 'Mã trạm không hợp lệ', 400);
   }
+
+  // Tham số ước lượng đọc từ .env (có giá trị mặc định an toàn).
+  const avgSpeedKmh = Number(process.env.AVG_BUS_SPEED_KMH) || 20;
+  const avgDwellMinutes = Number.isFinite(Number(process.env.AVG_DWELL_MINUTES))
+    ? Number(process.env.AVG_DWELL_MINUTES)
+    : 0.5;
+  const staleSeconds = Number(process.env.BUS_STALE_SECONDS) || 300;
 
   try {
     const stop = await Stop.findByPk(stopId);
@@ -284,37 +325,89 @@ export async function getStopArrivals(req, res) {
 
     const routeStops = await RouteStop.findAll({
       where: { stopId },
-      include: [
-        {
-          model: Route,
-          attributes: ['id', 'routeCode', 'routeName', 'color'],
-        },
-      ],
+      include: [{ model: Route }],
       order: [['direction', 'ASC'], ['stopOrder', 'ASC']],
     });
 
+    const now = Date.now();
     const arrivals = [];
+
     for (const rs of routeStops) {
       if (!rs.Route) continue;
 
+      // Chuỗi tọa độ chi tiết của tuyến theo chiều này.
+      const points = await RoutePoint.findAll({
+        where: { routeId: rs.routeId, direction: rs.direction },
+        attributes: ['latitude', 'longitude'],
+        order: [['pointOrder', 'ASC']],
+      });
+      if (points.length < 2) continue;
+
+      // Vị trí của trạm đích trên chuỗi điểm.
+      const targetIndex = nearestPointIndex(
+        points,
+        stop.latitude,
+        stop.longitude,
+      );
+
+      // Vị trí (theo chuỗi điểm) của mọi trạm trên cùng chiều, để đếm số trạm
+      // nằm giữa xe và trạm đích (phục vụ cộng thời gian dừng).
+      const sameDirectionStops = await RouteStop.findAll({
+        where: { routeId: rs.routeId, direction: rs.direction },
+        include: [{ model: Stop, attributes: ['latitude', 'longitude'] }],
+      });
+      const stopIndexes = sameDirectionStops
+        .filter((item) => item.Stop)
+        .map((item) =>
+          nearestPointIndex(
+            points,
+            item.Stop.latitude,
+            item.Stop.longitude,
+          ),
+        );
+
       const buses = await Bus.findAll({ where: { routeId: rs.routeId } });
+
       for (const bus of buses) {
+        if (bus.status === 'INACTIVE') continue;
+
         const lastLocation = await BusLocation.findOne({
           where: { busId: bus.id },
           order: [['recordedAt', 'DESC']],
         });
         if (!lastLocation) continue;
 
-        const distanceMeters = haversineMeters(
+        // Bỏ qua vị trí quá cũ.
+        const ageSeconds =
+          (now - new Date(lastLocation.recordedAt).getTime()) / 1000;
+        if (ageSeconds > staleSeconds) continue;
+
+        const busIndex = nearestPointIndex(
+          points,
           lastLocation.latitude,
           lastLocation.longitude,
-          stop.latitude,
-          stop.longitude,
         );
 
-        // Xe đứng yên (speed = 0) vẫn dùng tốc độ trung bình để ước lượng.
-        const speedKmh = Number(lastLocation.speed) > 1 ? Number(lastLocation.speed) : 20;
-        const estimatedMinutes = Math.max(1, Math.round((distanceMeters / 1000 / speedKmh) * 60));
+        // Xe đã đi qua trạm trong chiều này -> không tính là "đang đến".
+        if (busIndex >= targetIndex) continue;
+
+        const distanceMeters = pathDistanceMeters(points, busIndex, targetIndex);
+
+        // Xe đứng yên (speed <= 1) dùng vận tốc trung bình của tuyến.
+        const speedKmh =
+          Number(lastLocation.speed) > 1
+            ? Number(lastLocation.speed)
+            : avgSpeedKmh;
+
+        const intermediateStops = stopIndexes.filter(
+          (index) => index > busIndex && index < targetIndex,
+        ).length;
+
+        const travelMinutes = (distanceMeters / 1000 / speedKmh) * 60;
+        const estimatedMinutes = Math.max(
+          1,
+          Math.round(travelMinutes + intermediateStops * avgDwellMinutes),
+        );
 
         arrivals.push({
           route: publicRoute(rs.Route),
@@ -324,16 +417,29 @@ export async function getStopArrivals(req, res) {
           status: bus.status,
           latitude: lastLocation.latitude,
           longitude: lastLocation.longitude,
-          recordedAt: lastLocation.recordedAt,
           distanceMeters: Math.round(distanceMeters),
           estimatedMinutes,
+          isSimulated: true,
+          lastUpdatedAt: lastLocation.recordedAt,
         });
       }
     }
 
-    // Xe gần trạm nhất lên đầu.
-    arrivals.sort((a, b) => a.estimatedMinutes - b.estimatedMinutes);
-    return success(res, arrivals, 'Lấy dự kiến xe tới trạm thành công');
+    // Một xe chỉ hiển thị một lần (giữ dự kiến gần nhất), tránh lặp giữa
+    // hai chiều khi chưa có dữ liệu chiều đang chạy của xe.
+    const byBus = new Map();
+    for (const item of arrivals) {
+      const existing = byBus.get(item.busId);
+      if (!existing || item.estimatedMinutes < existing.estimatedMinutes) {
+        byBus.set(item.busId, item);
+      }
+    }
+
+    const data = [...byBus.values()].sort(
+      (a, b) => a.estimatedMinutes - b.estimatedMinutes,
+    );
+
+    return success(res, data, 'Lấy dự kiến xe tới trạm thành công');
   } catch (err) {
     console.error('[Lỗi dự kiến xe tới trạm]', err.message);
     return failure(res, 'Lỗi lấy dự kiến xe tới trạm, vui lòng thử lại sau', 500);
@@ -378,21 +484,6 @@ export async function getNearbyStops(req, res) {
     console.error('[Lỗi trạm gần đây]', err.message);
     return failure(res, 'Lỗi lấy danh sách trạm gần đây, vui lòng thử lại sau', 500);
   }
-}
-
-// Khoảng cách giữa hai tọa độ theo công thức Haversine (mét).
-function haversineMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // Bán kính Trái Đất (mét)
-  const toRad = (deg) => (deg * Math.PI) / 180;
-
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // ------------------------------------------------------------

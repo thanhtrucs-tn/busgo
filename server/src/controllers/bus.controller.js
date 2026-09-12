@@ -11,7 +11,7 @@
 import Bus from '../models/Bus.js';
 import BusLocation from '../models/BusLocation.js';
 import Route from '../models/Route.js';
-import { emitBusLocation } from '../realtime/socket.js';
+import { emitBusLocation, emitBusStatus } from '../realtime/socket.js';
 import { failure, success } from '../utils/response.util.js';
 
 // Gộp thông tin xe với vị trí mới nhất (nếu có) để trả cho Flutter.
@@ -118,11 +118,14 @@ export async function updateBusLocation(req, res) {
     });
 
     // Xe đang chạy thì đánh dấu RUNNING; nếu đổi tuyến thì cập nhật theo.
+    const previousStatus = bus.status;
     bus.status = 'RUNNING';
     if (bus.routeId !== routeId) {
       bus.routeId = routeId;
     }
     await bus.save();
+
+    const updatedAt = location.recordedAt.toISOString();
 
     const payload = {
       busId: bus.id,
@@ -132,11 +135,23 @@ export async function updateBusLocation(req, res) {
       longitude: location.longitude,
       speed: location.speed,
       heading: location.heading,
-      updatedAt: location.recordedAt.toISOString(),
+      updatedAt,
     };
 
     // Chỉ phát sau khi đã lưu thành công ở trên.
     emitBusLocation(payload);
+
+    // Nếu trạng thái xe vừa thay đổi (ví dụ ACTIVE -> RUNNING) thì phát thêm
+    // sự kiện bus:status-updated để client cập nhật nhãn trạng thái.
+    if (previousStatus !== bus.status) {
+      emitBusStatus({
+        busId: bus.id,
+        busCode: bus.busCode,
+        routeId,
+        status: bus.status,
+        updatedAt,
+      });
+    }
 
     return success(res, publicBus(bus, location), 'Cập nhật vị trí xe thành công');
   } catch (err) {

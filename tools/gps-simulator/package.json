@@ -1,0 +1,13 @@
+{
+  "name": "busgo-gps-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bộ mô phỏng GPS gửi vị trí xe buýt lên API BusGo",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

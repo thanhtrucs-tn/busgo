@@ -84,7 +84,7 @@ class RouteCard extends StatelessWidget {
                       ),
                       child: Text(
                         context.tr('stops_count', params: {
-                          'count': '${route.stops.length}',
+                          'count': '${route.displayStopCount}',
                         }),
                         style: TextStyle(
                           fontSize: 11,

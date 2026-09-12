@@ -52,7 +52,9 @@ BusLocation.init(
     modelName: 'BusLocation',
     tableName: 'bus_locations',
     timestamps: false, // Chỉ cần recorded_at, không cần created_at/updated_at
-    indexes: [{ fields: ['bus_id', 'recorded_at'] }],
+    // Đặt tên index trùng với file SQL (transit_schema.sql) để tránh
+    // tạo trùng hai index giống nhau trên cùng bảng.
+    indexes: [{ name: 'idx_bus_locations_bus_time', fields: ['bus_id', 'recorded_at'] }],
   },
 );
 

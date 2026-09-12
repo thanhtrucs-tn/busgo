@@ -26,7 +26,7 @@ void main() {
     // Đăng nhập tài khoản B: danh sách phải rỗng.
     await fav.loadForUser(2);
     expect(fav.isFavorite('1'), isFalse);
-    expect(fav.favoriteRoutes, isEmpty);
+    expect(fav.favoriteCount, 0);
 
     await fav.toggle('2');
     expect(fav.isFavorite('2'), isTrue);
@@ -45,7 +45,7 @@ void main() {
     await fav.clear();
 
     expect(fav.isFavorite('1'), isFalse);
-    expect(fav.favoriteRoutes, isEmpty);
+    expect(fav.favoriteCount, 0);
   });
 
   test('purgeLegacyCache() dọn khóa yêu thích dùng chung cũ', () async {

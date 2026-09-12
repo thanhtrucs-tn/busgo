@@ -1,0 +1,10 @@
+{
+  "apiBaseUrl": "http://localhost:3000/api",
+  "busId": 1,
+  "routeId": 1,
+  "direction": 0,
+  "intervalMs": 2500,
+  "defaultSpeedKmh": 25,
+  "switchDirectionAtEnd": true,
+  "token": ""
+}

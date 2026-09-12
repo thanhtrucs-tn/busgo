@@ -13,17 +13,97 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:busgo/data/sample_data.dart';
 import 'package:busgo/l10n/app_localizations.dart';
+import 'package:busgo/models/bus.dart';
+import 'package:busgo/models/bus_route.dart';
+import 'package:busgo/models/bus_stop.dart';
+import 'package:busgo/models/nearby_stop.dart';
+import 'package:busgo/models/route_point.dart';
+import 'package:busgo/models/route_stop.dart';
+import 'package:busgo/models/stop_arrival.dart';
 import 'package:busgo/screens/bus_tracking_screen.dart';
 import 'package:busgo/screens/home_screen.dart';
 import 'package:busgo/screens/map_screen.dart';
 import 'package:busgo/services/favorite_service.dart';
+import 'package:busgo/services/socket_service.dart';
+import 'package:busgo/services/transit_service.dart';
 import 'package:busgo/theme/app_theme.dart';
+
+// Bản giả của TransitService: trả về dữ liệu mẫu thay vì gọi API,
+// để test các màn hình mà không cần backend.
+class _FakeTransitService extends TransitService {
+  @override
+  Future<List<BusRoute>> fetchRoutes() async => sampleRoutes;
+
+  @override
+  Future<BusRoute> fetchRoute(String routeId) async =>
+      sampleRoutes.firstWhere((r) => r.id == routeId);
+
+  @override
+  Future<List<BusStop>> fetchStops({String? q}) async => sampleStops;
+
+  @override
+  Future<List<RouteStop>> fetchRouteStops(
+    String routeId, {
+    int direction = 0,
+  }) async {
+    final route = sampleRoutes.firstWhere((r) => r.id == routeId);
+    return [
+      for (int i = 0; i < route.stops.length; i++)
+        RouteStop(
+          stop: route.stops[i],
+          direction: direction,
+          stopOrder: i + 1,
+        ),
+    ];
+  }
+
+  @override
+  Future<List<RoutePoint>> fetchRoutePath(
+    String routeId, {
+    int direction = 0,
+  }) async =>
+      const [];
+
+  @override
+  Future<List<Bus>> fetchRouteBuses(String routeId) async =>
+      sampleBuses.where((b) => b.routeId == routeId).toList();
+
+  @override
+  Future<List<BusRoute>> fetchStopRoutes(String stopId) async =>
+      routesThroughStop(stopId);
+
+  @override
+  Future<List<StopArrival>> fetchStopArrivals(String stopId) async =>
+      const [];
+
+  @override
+  Future<List<NearbyStop>> fetchNearbyStops(
+    double latitude,
+    double longitude, {
+    int radius = 2000,
+  }) async =>
+      const [];
+}
+
+// Bản giả trả về dữ liệu rỗng (kiểm thử trạng thái "không có dữ liệu").
+class _EmptyTransitService extends _FakeTransitService {
+  @override
+  Future<List<BusRoute>> fetchRoutes() async => const [];
+
+  @override
+  Future<List<BusStop>> fetchStops({String? q}) async => const [];
+}
 
 void main() {
   setUp(() {
     // Dung bo nho gia cho shared_preferences trong moi test.
     SharedPreferences.setMockInitialValues({});
+    // Dung du lieu mau thay cho API backend.
+    TransitService.instance = _FakeTransitService();
+    // Khong mo ket noi Socket.IO trong moi truong test.
+    SocketService.instance.enabled = false;
   });
 
   // Phong to cua so test de Home hien thi du ca 5 the chuc nang.
@@ -170,21 +250,29 @@ void main() {
     expect(find.textContaining('Chưa có tuyến yêu thích nào'), findsOneWidget);
   });
 
-  testWidgets('5. Ban do: khong co du lieu hien thong bao', (tester) async {
+  testWidgets('5. Ban do: chua co tuyen thi hien thong bao', (tester) async {
     setTestWindow(tester);
-    await tester.pumpWidget(const MaterialApp(home: MapScreen(stops: [])));
-
-    expect(find.text('Không có dữ liệu trạm để hiển thị'), findsOneWidget);
-  });
-
-  testWidgets('6. Ban do: hien thi 5 marker cua cac tram', (tester) async {
-    setTestWindow(tester);
+    TransitService.instance = _EmptyTransitService();
     await tester.pumpWidget(const MaterialApp(home: MapScreen()));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
     expect(find.byType(FlutterMap), findsOneWidget);
-    expect(find.byIcon(Icons.location_pin), findsNWidgets(5));
+    expect(find.text('Chưa có tuyến xe buýt'), findsOneWidget);
+
+    // Huy man hinh de ket thuc sach se.
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('6. Ban do: hien thi marker cua cac tram', (tester) async {
+    setTestWindow(tester);
+    await tester.pumpWidget(const MaterialApp(home: MapScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FlutterMap), findsOneWidget);
+    expect(
+      find.byIcon(Icons.location_pin),
+      findsNWidgets(sampleStops.length),
+    );
 
     // Huy man hinh de ket thuc sach se (khong con ticker).
     await tester.pumpWidget(const SizedBox());
@@ -193,12 +281,12 @@ void main() {
   testWidgets('7. Theo doi xe: hien thi xe va banner mo phong', (tester) async {
     setTestWindow(tester);
     await tester.pumpWidget(const MaterialApp(home: BusTrackingScreen()));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('Dữ liệu mô phỏng'), findsOneWidget);
     expect(find.byIcon(Icons.directions_bus), findsNWidgets(3));
 
-    // Huy man hinh de dung Timer.periodic.
+    // Huy man hinh de dung listener.
     await tester.pumpWidget(const SizedBox());
   });
 }

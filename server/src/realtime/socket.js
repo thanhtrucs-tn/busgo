@@ -47,3 +47,9 @@ export function emitBusLocation(payload) {
   if (!io) return;
   io.to(`route:${payload.routeId}`).emit('bus:location-updated', payload);
 }
+
+// Phát trạng thái xe mới (RUNNING / INACTIVE...) tới các client theo dõi tuyến.
+export function emitBusStatus(payload) {
+  if (!io) return;
+  io.to(`route:${payload.routeId}`).emit('bus:status-updated', payload);
+}

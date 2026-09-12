@@ -25,6 +25,10 @@ class ApiResult {
   final bool success;
   final String message;
   final Map<String, dynamic>? data;
+
+  // Phần dữ liệu thật server trả về trong khóa "data"
+  // (có thể là Map hoặc List tùy endpoint).
+  dynamic get payload => data?['data'];
 }
 
 class ApiService {
@@ -39,10 +43,16 @@ class ApiService {
   // Mỗi hàm tự thêm header Authorization nếu có token.
 
   // Gọi GET, ví dụ: ApiService.instance.get('/auth/me', protected: true);
-  Future<ApiResult> get(String path, {bool protected = false}) async {
+  // query: các tham số trên URL, ví dụ {'direction': '0'}.
+  Future<ApiResult> get(
+    String path, {
+    Map<String, String>? query,
+    bool protected = false,
+  }) async {
     return _send(
       method: 'GET',
       path: path,
+      query: query,
       protected: protected,
     );
   }
@@ -72,11 +82,15 @@ class ApiService {
     required String method,
     required String path,
     Map<String, dynamic>? body,
+    Map<String, String>? query,
     bool protected = false,
   }) async {
     try {
-      // Xây dựng URL đầy đủ: baseUrl + đường dẫn.
-      final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+      // Xây dựng URL đầy đủ: baseUrl + đường dẫn (+ tham số query nếu có).
+      var uri = Uri.parse('${ApiConfig.baseUrl}$path');
+      if (query != null && query.isNotEmpty) {
+        uri = uri.replace(queryParameters: query);
+      }
 
       // Header cơ bản: loại nội dung JSON.
       final headers = <String, String>{

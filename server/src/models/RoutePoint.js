@@ -46,6 +46,16 @@ RoutePoint.init(
     sequelize,
     modelName: 'RoutePoint',
     tableName: 'route_points',
+    // Mỗi tuyến/chiều không được trùng thứ tự điểm polyline.
+    // Đặt tên index trùng với file SQL (transit_schema.sql) để tránh
+    // tạo trùng hai index giống nhau trên cùng bảng.
+    indexes: [
+      {
+        name: 'uk_route_points_order',
+        unique: true,
+        fields: ['route_id', 'direction', 'point_order'],
+      },
+    ],
   },
 );
 

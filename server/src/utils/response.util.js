@@ -20,7 +20,26 @@ export function failure(res, message = 'Đã xảy ra lỗi', status = 400) {
 
 // Middleware xử lý lỗi ngoài ý muốn ở server (bắt lỗi cuối cùng).
 export function errorHandler(err, req, res, next) {
-  // Tránh lộ chi tiết lỗi kỹ thuật cho người dùng cuối.
+  // Lỗi do phía client (JSON sai định dạng, body quá lớn...) đã có sẵn mã 4xx.
+  // Ví dụ body-parser gắn status = 400 cho lỗi 'entity.parse.failed'.
+  const status = Number(err?.status || err?.statusCode) || 500;
+
+  if (status >= 400 && status < 500) {
+    // Lỗi của người dùng -> chỉ ghi log ngắn, KHÔNG in stack trace.
+    console.warn(
+      `[Yêu cầu không hợp lệ] ${err?.type || ''} ${err?.message || ''}`.trim(),
+    );
+    let message = 'Dữ liệu yêu cầu không hợp lệ';
+    if (err?.type === 'entity.parse.failed') {
+      message = 'Dữ liệu JSON trong yêu cầu không hợp lệ';
+    } else if (err?.type === 'entity.too.large') {
+      message = 'Dữ liệu gửi lên quá lớn';
+    }
+    return failure(res, message, status);
+  }
+
+  // Lỗi phía máy chủ: ghi log đầy đủ để gỡ lỗi, nhưng KHÔNG trả chi tiết
+  // kỹ thuật (stack trace) cho người dùng cuối.
   console.error('[Lỗi máy chủ]', err);
   return failure(res, 'Đã xảy ra lỗi máy chủ, vui lòng thử lại sau', 500);
 }

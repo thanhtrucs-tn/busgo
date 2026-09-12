@@ -53,13 +53,14 @@ class TileConfig {
   static final TileProviderConfig current = TileConfig.osm;
 
   // OpenStreetMap - MẶC ĐỊNH.
-  // Attribution bắt buộc ghi "© OpenStreetMap contributors" theo yêu cầu
-  // của OpenStreetMap Foundation.
+  // LƯU Ý: widget SimpleAttributionWidget tự thêm tiền tố "© " nên ở đây
+  // chỉ ghi phần tên nguồn; trên bản đồ sẽ hiển thị đúng
+  // "© OpenStreetMap contributors" theo yêu cầu của OSM Foundation.
   static const TileProviderConfig osm = TileProviderConfig(
     id: 'osm',
     displayName: 'OpenStreetMap',
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '© OpenStreetMap contributors',
+    attribution: 'OpenStreetMap contributors',
     userAgentPackageName: 'com.example.busgo',
   );
 
@@ -70,7 +71,7 @@ class TileConfig {
     displayName: 'Esri World Street Map',
     urlTemplate:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Bản đồ © Esri — World Street Map',
+    attribution: 'Esri — World Street Map',
     userAgentPackageName: 'com.example.busgo',
   );
 }
