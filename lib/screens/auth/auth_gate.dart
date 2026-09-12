@@ -43,8 +43,9 @@ class _AuthGateState extends State<AuthGate> {
     if (!mounted) return;
 
     if (result.success && result.user != null) {
-      // Token hợp lệ -> khôi phục phiên và vào Trang chủ.
-      SessionService.instance.login(result.user!);
+      // Token hợp lệ -> khôi phục phiên và tải hồ sơ của đúng tài khoản.
+      await SessionService.instance.login(result.user!);
+      if (!mounted) return;
       setState(() => _destination = 'home');
     } else {
       // Không có token / token hết hạn / lỗi mạng -> vào màn hình Đăng nhập.

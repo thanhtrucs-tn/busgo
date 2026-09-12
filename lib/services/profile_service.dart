@@ -1,45 +1,68 @@
 // profile_service.dart
-// Quan ly thong tin ho so ca nhan cua nguoi dung: ten, email, so dien thoai,
-// ngay sinh, anh dai dien, danh sach dia chi va dia chi mac dinh.
-// Luu tru cuc bo bang shared_preferences (khong can backend).
-// Ke thua ChangeNotifier de thong bao cho giao dien khi ho so thay doi.
+// Quản lý HỒ SƠ CÁ NHÂN của tài khoản đang đăng nhập.
+//
+// ĐÂY LÀ ĐIỂM SỬA LỖI RÒ RỈ DỮ LIỆU GIỮA CÁC TÀI KHOẢN:
+//  - Hồ sơ là nguồn dữ liệu TẬP TRUNG từ backend (GET/PUT /api/profile/me),
+//    backend chỉ trả hồ sơ theo user_id trong JWT.
+//  - Không còn dùng một khóa SharedPreferences chung cho mọi tài khoản.
+//    Mỗi lần đăng nhập, loadForUser() XÓA SẠCH dữ liệu trong bộ nhớ rồi
+//    tải hồ sơ của đúng tài khoản đó từ server.
+//  - Khi đăng xuất, clear() xóa toàn bộ dữ liệu trong bộ nhớ và dọn cả
+//    các khóa cũ còn sót lại trong SharedPreferences.
+// Kế thừa ChangeNotifier để giao diện cập nhật khi hồ sơ/trạng thái tải đổi.
 
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/user_account.dart';
+import 'api_service.dart';
+
+// Kết quả lưu hồ sơ trả về cho màn hình chỉnh sửa.
+class ProfileResult {
+  const ProfileResult({required this.success, required this.message});
+
+  final bool success;
+  final String message;
+}
 
 class ProfileService extends ChangeNotifier {
-  // Singleton: chi co mot doi tuong duy nhat trong ca app.
+  // Singleton: chỉ có một đối tượng duy nhất trong cả app.
   ProfileService._();
   static final ProfileService instance = ProfileService._();
 
-  // Key dung de luu vao bo nho.
-  static const String _kName = 'profile_name';
-  static const String _kEmail = 'profile_email';
-  static const String _kPhone = 'profile_phone';
-  static const String _kBirthday = 'profile_birthday';
-  static const String _kAvatar = 'profile_avatar';
-  static const String _kAddresses = 'profile_addresses';
-  static const String _kDefaultIndex = 'profile_default_index';
-  static const String _kLocationLat = 'profile_location_lat';
-  static const String _kLocationLng = 'profile_location_lng';
+  // Các khóa cũ từng dùng để lưu hồ sơ chung (cần dọn khi đăng xuất).
+  static const List<String> _legacyKeys = [
+    'profile_name',
+    'profile_email',
+    'profile_phone',
+    'profile_birthday',
+    'profile_avatar',
+    'profile_addresses',
+    'profile_default_index',
+    'profile_location_lat',
+    'profile_location_lng',
+  ];
 
-  // Du lieu ho so (mac dinh la nguoi dung mau).
-  String _name = 'Nguyễn Văn A';
-  String _email = 'nguyenvana@example.com';
+  // ID tài khoản mà hồ sơ hiện tại thuộc về (null = chưa đăng nhập).
+  int? _userId;
+
+  // Trạng thái đang tải hồ sơ từ server (để hiện vòng xoay, tránh nháy dữ liệu cũ).
+  bool _loading = false;
+
+  // Dữ liệu hồ sơ trong bộ nhớ (mặc định RỖNG, không dùng dữ liệu mẫu).
+  String _name = '';
+  String _email = '';
   String _phone = '';
   DateTime? _birthday;
   Uint8List? _avatarBytes;
   List<String> _addresses = <String>[];
   int _defaultAddressIndex = 0;
-
-  // Toa do GPS cua dia chi chinh (lay khi user bam "Lay vi tri hien tai").
   double? _locationLat;
   double? _locationLng;
 
+  int? get userId => _userId;
+  bool get isLoading => _loading;
   String get name => _name;
   String get email => _email;
   String get phone => _phone;
@@ -50,35 +73,42 @@ class ProfileService extends ChangeNotifier {
   double? get locationLat => _locationLat;
   double? get locationLng => _locationLng;
 
-  /// Ky tu dau tien cua ten (dung lam avatar mac dinh khi chua chon anh).
+  /// Ký tự đầu tiên của tên (dùng làm avatar mặc định khi chưa chọn ảnh).
   String get initial {
     final trimmed = _name.trim();
     if (trimmed.isEmpty) return '?';
     return trimmed.substring(0, 1);
   }
 
-  // Doc toan bo ho so tu bo nho (goi mot lan khi mo app).
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    _name = prefs.getString(_kName) ?? 'Nguyễn Văn A';
-    _email = prefs.getString(_kEmail) ?? 'nguyenvana@example.com';
-    _phone = prefs.getString(_kPhone) ?? '';
-    _birthday = DateTime.tryParse(prefs.getString(_kBirthday) ?? '');
-
-    final avatar = prefs.getString(_kAvatar) ?? '';
-    _avatarBytes = avatar.isEmpty ? null : base64Decode(avatar);
-
-    _addresses = prefs.getStringList(_kAddresses) ?? <String>[];
-    _defaultAddressIndex = prefs.getInt(_kDefaultIndex) ?? 0;
-    _locationLat = prefs.getDouble(_kLocationLat);
-    _locationLng = prefs.getDouble(_kLocationLng);
-
+  // Tải hồ sơ của ĐÚNG tài khoản vừa đăng nhập từ backend.
+  // Dữ liệu cũ trong bộ nhớ bị xóa ngay từ đầu để không hiện nhầm tài khoản trước.
+  Future<ProfileResult> loadForUser(int userId) async {
+    _userId = userId;
+    _resetFields();
+    _loading = true;
     notifyListeners();
+
+    // Dọn dữ liệu hồ sơ dùng chung còn sót lại của phiên bản lỗi trước.
+    await purgeLegacyCache();
+
+    final result = await ApiService.instance.get('/profile/me', protected: true);
+
+    if (result.success && result.data != null) {
+      _applyJson(_payload(result.data!));
+      _loading = false;
+      notifyListeners();
+      return ProfileResult(success: true, message: result.message);
+    }
+
+    // Lỗi mạng/server: giữ hồ sơ rỗng, KHÔNG dùng lại dữ liệu tài khoản khác.
+    _loading = false;
+    notifyListeners();
+    return ProfileResult(success: false, message: result.message);
   }
 
-  // Luu ho so moi vao bo nho (cac truong null se giu gia tri hien tai).
-  Future<void> save({
+  // Lưu hồ sơ lên backend rồi cập nhật lại dữ liệu trong bộ nhớ theo phản hồi.
+  // Tham số null nghĩa là giữ nguyên giá trị hiện tại.
+  Future<ProfileResult> save({
     String? name,
     String? email,
     String? phone,
@@ -89,64 +119,103 @@ class ProfileService extends ChangeNotifier {
     double? locationLat,
     double? locationLng,
   }) async {
-    _name = name ?? _name;
-    _email = email ?? _email;
-    _phone = phone ?? _phone;
-    _birthday = birthday;
-    _avatarBytes = avatarBytes;
-    _addresses = addresses ?? _addresses;
-    _defaultAddressIndex = defaultAddressIndex ?? _defaultAddressIndex;
-    _locationLat = locationLat;
-    _locationLng = locationLng;
+    if (_userId == null) {
+      return const ProfileResult(
+        success: false,
+        message: 'Chưa đăng nhập, vui lòng đăng nhập lại',
+      );
+    }
 
-    // Bao cho giao dien biet ho so da thay doi.
+    final effectiveBirthday = birthday ?? _birthday;
+    final effectiveAvatar = avatarBytes ?? _avatarBytes;
+
+    final body = <String, dynamic>{
+      'name': (name ?? _name).trim(),
+      'email': (email ?? _email).trim(),
+      'phone': (phone ?? _phone).trim(),
+      'birthday': effectiveBirthday == null ? null : _dateOnly(effectiveBirthday),
+      'avatar': effectiveAvatar == null ? null : base64Encode(effectiveAvatar),
+      'addresses': addresses ?? _addresses,
+      'defaultAddressIndex': defaultAddressIndex ?? _defaultAddressIndex,
+      'locationLat': locationLat ?? _locationLat,
+      'locationLng': locationLng ?? _locationLng,
+    };
+
+    final result =
+        await ApiService.instance.put('/profile/me', body: body, protected: true);
+
+    if (result.success && result.data != null) {
+      _applyJson(_payload(result.data!));
+      notifyListeners();
+      return ProfileResult(success: true, message: result.message);
+    }
+    return ProfileResult(success: false, message: result.message);
+  }
+
+  // Đăng xuất: xóa toàn bộ hồ sơ trong bộ nhớ + dọn dữ liệu cũ trên thiết bị.
+  Future<void> clear() async {
+    _userId = null;
+    _resetFields();
     notifyListeners();
 
+    await purgeLegacyCache();
+  }
+
+  // Dọn các khóa hồ sơ dùng chung do phiên bản lỗi trước đây ghi vào máy.
+  // Được gọi lúc mở app, khi đăng nhập và khi đăng xuất để chắc chắn không
+  // còn dữ liệu của tài khoản cũ trên thiết bị.
+  Future<void> purgeLegacyCache() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kName, _name);
-    await prefs.setString(_kEmail, _email);
-    await prefs.setString(_kPhone, _phone);
-    await prefs.setString(
-      _kBirthday,
-      _birthday?.toIso8601String() ?? '',
-    );
-    await prefs.setString(
-      _kAvatar,
-      _avatarBytes == null ? '' : base64Encode(_avatarBytes!),
-    );
-    await prefs.setStringList(_kAddresses, _addresses);
-    await prefs.setInt(_kDefaultIndex, _defaultAddressIndex);
-    if (_locationLat == null || _locationLng == null) {
-      await prefs.remove(_kLocationLat);
-      await prefs.remove(_kLocationLng);
-    } else {
-      await prefs.setDouble(_kLocationLat, _locationLat!);
-      await prefs.setDouble(_kLocationLng, _locationLng!);
+    for (final key in _legacyKeys) {
+      await prefs.remove(key);
     }
   }
 
-  // Đồng bộ TÊN + EMAIL từ tài khoản đang đăng nhập (nguồn dữ liệu chung).
-  // Được gọi mỗi khi đăng nhập / khôi phục phiên để mọi màn hình
-  // (Trang cài đặt, Hồ sơ...) hiển thị đúng tài khoản vừa đăng nhập.
-  Future<void> syncFromSession(UserAccount user) async {
-    // Ưu tiên tên hiển thị; không có thì dùng tên đăng nhập.
-    _name = user.name.isNotEmpty ? user.name : user.username;
-    _email = user.email;
-    notifyListeners();
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kName, _name);
-    await prefs.setString(_kEmail, _email);
-  }
-
-  // Xóa TÊN + EMAIL khi đăng xuất để không lưu lại dữ liệu tài khoản cũ.
-  Future<void> clearIdentity() async {
+  void _resetFields() {
     _name = '';
     _email = '';
-    notifyListeners();
+    _phone = '';
+    _birthday = null;
+    _avatarBytes = null;
+    _addresses = <String>[];
+    _defaultAddressIndex = 0;
+    _locationLat = null;
+    _locationLng = null;
+  }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kName, _name);
-    await prefs.setString(_kEmail, _email);
+  // Gán dữ liệu hồ sơ từ JSON backend trả về.
+  void _applyJson(Map<String, dynamic> json) {
+    _name = (json['name'] as String?) ?? '';
+    _email = (json['email'] as String?) ?? '';
+    _phone = (json['phone'] as String?) ?? '';
+
+    final birthdayStr = json['birthday'] as String?;
+    _birthday = (birthdayStr == null || birthdayStr.isEmpty)
+        ? null
+        : DateTime.tryParse(birthdayStr);
+
+    final avatar = json['avatar'] as String?;
+    _avatarBytes = (avatar == null || avatar.isEmpty) ? null : base64Decode(avatar);
+
+    final list = json['addresses'];
+    _addresses = list is List
+        ? list.map((item) => item.toString()).toList()
+        : <String>[];
+
+    _defaultAddressIndex = (json['defaultAddressIndex'] as num?)?.toInt() ?? 0;
+    _locationLat = (json['locationLat'] as num?)?.toDouble();
+    _locationLng = (json['locationLng'] as num?)?.toDouble();
+  }
+
+  // Lấy phần dữ liệu thật bên trong phản hồi chuẩn { success, message, data }.
+  Map<String, dynamic> _payload(Map<String, dynamic> response) {
+    final inner = response['data'];
+    return inner is Map<String, dynamic> ? inner : response;
+  }
+
+  String _dateOnly(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 }

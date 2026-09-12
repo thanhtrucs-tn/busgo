@@ -34,14 +34,17 @@ export async function authenticateToken(req, res, next) {
     // Bước 3: verify JWT (sai chữ ký / hết hạn đều ném lỗi).
     const payload = verifyToken(token);
 
-    // Bước 4 + 5: tìm user theo id trong payload.
-    const user = await User.findByPk(payload.id);
+    // Bước 4 + 5: lấy định danh tài khoản từ payload token (KHÔNG lấy userId
+    // do client gửi lên) rồi tìm user trong database.
+    const userId = payload.userId ?? payload.id;
+    const user = await User.findByPk(userId);
     if (!user) {
       // Token hợp lệ nhưng tài khoản đã bị xóa -> coi như không hợp lệ.
       return failure(res, 'Token không hợp lệ hoặc đã hết hạn', 401);
     }
 
-    // Bước 6: gắn user vào req.user cho controller phía sau dùng.
+    // Bước 6: gắn user đã xác thực vào req.user cho controller phía sau dùng.
+    // Mọi API hồ sơ chỉ được dùng req.user.id, không tin userId trong body/query.
     req.user = user;
 
     // Bước 7: hợp lệ -> cho phép xử lý tiếp.

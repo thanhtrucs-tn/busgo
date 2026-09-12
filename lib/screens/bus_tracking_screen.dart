@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../config/tile_config.dart';
 import '../data/sample_data.dart';
 import '../l10n/app_localizations.dart';
 import '../models/bus.dart';

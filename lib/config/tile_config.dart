@@ -4,10 +4,14 @@
 // Mục đích:
 //  - Không hardcode URL/attribution trực tiếp trong Widget.
 //  - Tách riêng URL tile, tên gói User-Agent và attribution.
-//  - Mặc định dùng Esri World Street Map (chạy ổn định, không cần API key),
-//    đồng thời cấu hình sẵn OpenStreetMap để chuyển sau này khi cần.
+//  - Mặc định dùng OpenStreetMap (có ghi nguồn "© OpenStreetMap contributors"),
+//    đồng thời cấu hình sẵn Esri World Street Map làm phương án dự phòng.
 //
-// Đổi nguồn tile: chỉ cần sửa giá trị của `current` (vd: TileConfig.osm),
+// LƯU Ý: tile công cộng của OpenStreetMap chỉ phù hợp cho demo/đồ án,
+// KHÔNG phải giải pháp production lâu dài. Khi triển khai thật nên dùng
+// nhà cung cấp tile riêng (có API key) hoặc tile server tự vận hành.
+//
+// Đổi nguồn tile: chỉ cần sửa giá trị của `current` (vd: TileConfig.esri),
 // toàn bộ màn hình bản đồ sẽ dùng theo mà không phải chỉnh từng chỗ.
 
 // Đại diện một nguồn tile.
@@ -44,28 +48,29 @@ class TileConfig {
   // Lớp tĩnh: không cho khởi tạo.
   TileConfig._();
 
-  // Nguồn tile ĐANG dùng. Muốn chuyển sang OSM đổi dòng này thành:
-  //   static final TileProviderConfig current = TileConfig.osm;
-  static final TileProviderConfig current = TileConfig.esri;
+  // Nguồn tile ĐANG dùng. Muốn chuyển sang Esri đổi dòng này thành:
+  //   static final TileProviderConfig current = TileConfig.esri;
+  static final TileProviderConfig current = TileConfig.osm;
 
-  // Esri World Street Map - mặc định (miễn phí, không cần API key,
-  // chạy ổn định trên máy/simulator).
+  // OpenStreetMap - MẶC ĐỊNH.
+  // Attribution bắt buộc ghi "© OpenStreetMap contributors" theo yêu cầu
+  // của OpenStreetMap Foundation.
+  static const TileProviderConfig osm = TileProviderConfig(
+    id: 'osm',
+    displayName: 'OpenStreetMap',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
+    userAgentPackageName: 'com.example.busgo',
+  );
+
+  // Esri World Street Map - phương án dự phòng (miễn phí, không cần API key),
+  // dùng khi muốn thử nguồn tile khác hoặc OSM quá tải.
   static const TileProviderConfig esri = TileProviderConfig(
     id: 'esri',
     displayName: 'Esri World Street Map',
     urlTemplate:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Bản đồ © Esri — World Street Map',
-    userAgentPackageName: 'com.example.busgo',
-  );
-
-  // OpenStreetMap - phương án dự phòng, dùng khi muốn thử OSM.
-  // Lưu ý mục 4 yêu cầu: attribution bắt buộc ghi "© OpenStreetMap contributors".
-  static const TileProviderConfig osm = TileProviderConfig(
-    id: 'osm',
-    displayName: 'OpenStreetMap',
-    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: 'Bản đồ © OpenStreetMap contributors',
     userAgentPackageName: 'com.example.busgo',
   );
 }

@@ -26,14 +26,15 @@ export function requireJwtSecret() {
 }
 
 // Ký (tạo) một JWT mới cho user.
-// payload gồm: id, username, role -> sau này middleware đọc lại được.
+// payload gồm: userId, username, role -> sau này middleware đọc lại được.
+// Giữ thêm 'id' để tương thích với token cũ đã phát hành trước đây.
 // Trả về chuỗi token, ví dụ: eyJhbGciOiJIUzI1NiIs...
 export function signToken(user) {
   const secret = requireJwtSecret();
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d'; // Mặc định hết hạn sau 7 ngày
 
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+    { userId: user.id, id: user.id, username: user.username, role: user.role },
     secret,
     { expiresIn },
   );

@@ -33,11 +33,16 @@ class ProfileScreen extends StatelessWidget {
       final Uint8List bytes = await image.readAsBytes();
       if (!context.mounted) return;
 
-      // Luu vao ProfileService -> moi man hinh cap nhat ngay lap tuc.
-      await profile.save(avatarBytes: bytes);
+      // Luu vao ProfileService -> ProfileService goi API /profile/me
+      // de luu dung cho tai khoan dang dang nhap.
+      final ProfileResult result = await profile.save(avatarBytes: bytes);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('avatar_updated'))),
+        SnackBar(
+          content: Text(
+            result.success ? context.tr('avatar_updated') : result.message,
+          ),
+        ),
       );
     } catch (_) {
       // Loi quyen / khong mo duoc thu vien -> thong bao cho nguoi dung.
@@ -59,6 +64,12 @@ class ProfileScreen extends StatelessWidget {
         listenable: ProfileService.instance,
         builder: (context, _) {
           final ProfileService profile = ProfileService.instance;
+
+          // Đang tải hồ sơ từ server: hiện vòng xoay để không hiển thị
+          // nhầm (hoặc thoáng qua) dữ liệu của tài khoản trước.
+          if (profile.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           return ListView(
             padding: const EdgeInsets.only(bottom: 28),

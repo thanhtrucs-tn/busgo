@@ -63,6 +63,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // An/hien mat khau.
   bool _obscurePassword = true;
 
+  // Dang luu ho so len server (chan bam nhieu lan + hien vong xoay).
+  bool _saving = false;
+
   @override
   void initState() {
     super.initState();
@@ -411,9 +414,12 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
 
   // ------------------------- Luu -------------------------
 
-  void _save() {
+  Future<void> _save() async {
     // Kiem tra toan bo form; neu khong hop le thi khong submit.
     if (!_formKey.currentState!.validate()) return;
+    if (_saving) return;
+
+    setState(() => _saving = true);
 
     // Chi giu lai cac dia chi khong rong; tinh lai index mac dinh.
     final List<int> nonEmptyRows = <int>[];
@@ -427,8 +433,9 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
         ? 0
         : (defaultFiltered < 0 ? 0 : defaultFiltered);
 
-    // Luu ho so (hien thi lai dung truc tiep trong app).
-    ProfileService.instance.save(
+    // Luu ho so len backend (ProfileService goi PUT /api/profile/me).
+    // Backend xac dinh ho so theo JWT nen chi tai khoan dang dang nhap bi sua.
+    final ProfileResult result = await ProfileService.instance.save(
       name: _nameCtrl.text.trim(),
       email: _emailCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
@@ -440,10 +447,20 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
       locationLng: _locationLng,
     );
 
+    if (!mounted) return;
+    setState(() => _saving = false);
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('saved_success'))),
+      SnackBar(
+        content: Text(
+          result.success ? context.tr('saved_success') : result.message,
+        ),
+      ),
     );
-    Navigator.pop(context);
+
+    if (result.success) {
+      Navigator.pop(context);
+    }
   }
 
   // ------------------------- Giao dien -------------------------
@@ -740,9 +757,15 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.save_outlined),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
                   label: Text(context.tr('save_changes')),
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                 ),
               ),
             ),

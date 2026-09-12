@@ -102,9 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
         username: identifier,
       );
 
-      // Ghi nhận phiên đăng nhập để các màn hình khác dùng chung.
+      // Ghi nhận phiên đăng nhập + tải hồ sơ của đúng tài khoản này.
       if (result.user != null) {
-        SessionService.instance.login(result.user!);
+        await SessionService.instance.login(result.user!);
       }
 
       // Bảo vệ: kiểm tra lại sau khi await để không dùng context đã bị hủy.
@@ -158,8 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
         username: '',
       );
 
-      // Ghi nhận phiên đăng nhập cho các màn hình khác dùng chung.
-      SessionService.instance.login(result.user!);
+      // Ghi nhận phiên đăng nhập + tải hồ sơ của đúng tài khoản này.
+      await SessionService.instance.login(result.user!);
 
       if (!mounted) return;
 

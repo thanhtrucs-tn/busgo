@@ -104,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = false);
 
     if (result.success && result.user != null) {
-      SessionService.instance.login(result.user!);
+      await SessionService.instance.login(result.user!);
       if (!mounted) return;
 
       // Vào thẳng Trang chủ (đã có tài khoản sẵn sàng để dùng).

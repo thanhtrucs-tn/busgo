@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/user_account.dart';
 import 'auth_service.dart';
+import 'favorite_service.dart';
 import 'profile_service.dart';
 
 class SessionService extends ChangeNotifier {
@@ -27,23 +28,27 @@ class SessionService extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   // Lưu tài khoản vừa đăng nhập thành công vào phiên hiện tại.
-  // Đồng thời đồng bộ tên/email lên ProfileService - một nguồn dữ liệu chung
-  // để Trang cài đặt / Hồ sơ luôn khớp với Trang chủ.
-  // Ví dụ: SessionService.instance.login(user);
-  void login(UserAccount user) {
+  // Đồng thời TẢI LẠI hồ sơ của đúng tài khoản này từ backend: dữ liệu hồ sơ
+  // của tài khoản trước bị xóa trước khi tải, tránh rò rỉ giữa các tài khoản.
+  // Ví dụ: await SessionService.instance.login(user);
+  Future<void> login(UserAccount user) async {
     _currentUser = user;
-    // Cập nhật bộ nhớ ProfileService ngay (không cần chờ lưu vào đĩa).
-    ProfileService.instance.syncFromSession(user);
+    // Xóa hồ sơ cũ + tải hồ sơ mới theo user.id (nguồn dữ liệu là server).
+    await ProfileService.instance.loadForUser(user.id);
+    // Nạp danh sách tuyến yêu thích riêng của tài khoản này.
+    await FavoriteService.instance.loadForUser(user.id);
     notifyListeners();
   }
 
-  // Đăng xuất: xóa JWT khỏi thiết bị + xóa user khỏi bộ nhớ.
+  // Đăng xuất: xóa JWT khỏi thiết bị + xóa hồ sơ/yêu thích/phiên trong bộ nhớ.
   // Sau khi gọi, app phải chuyển về màn hình Đăng nhập.
   Future<void> logout() async {
     // Xóa token + user trong secure storage (JWT không còn giá trị).
     await AuthService.instance.logout();
-    // Xóa tên/email khỏi ProfileService để không lộ tài khoản cũ.
-    await ProfileService.instance.clearIdentity();
+    // Xóa toàn bộ hồ sơ (tên, điện thoại, địa chỉ, ảnh...) khỏi bộ nhớ và cache.
+    await ProfileService.instance.clear();
+    // Xóa danh sách yêu thích khỏi bộ nhớ để không lộ dữ liệu tài khoản cũ.
+    await FavoriteService.instance.clear();
     _currentUser = null;
     notifyListeners();
   }

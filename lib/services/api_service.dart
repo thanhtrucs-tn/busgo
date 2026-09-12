@@ -57,6 +57,16 @@ class ApiService {
     );
   }
 
+  // Gọi PUT, ví dụ: ApiService.instance.put('/profile/me', body: {...}, protected: true);
+  Future<ApiResult> put(String path, {Map<String, dynamic>? body, bool protected = false}) async {
+    return _send(
+      method: 'PUT',
+      path: path,
+      body: body,
+      protected: protected,
+    );
+  }
+
   // Triển khai chung cho mọi request (tránh lặp code).
   Future<ApiResult> _send({
     required String method,
@@ -85,6 +95,10 @@ class ApiService {
       final http.Response response;
       if (method == 'GET') {
         response = await http.get(uri, headers: headers).timeout(_timeout);
+      } else if (method == 'PUT') {
+        response = await http
+            .put(uri, headers: headers, body: jsonEncode(body ?? {}))
+            .timeout(_timeout);
       } else {
         response = await http
             .post(uri, headers: headers, body: jsonEncode(body ?? {}))

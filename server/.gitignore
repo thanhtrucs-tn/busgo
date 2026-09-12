@@ -1,3 +1,9 @@
 # Không đưa thư mục cài đặt và file mật khẩu lên git.
 node_modules/
 .env
+.env.local
+.env.*.local
+
+# .env.production là file MẪU (chỉ chứa placeholder, không có secret thật)
+# nên được phép commit để người khác biết cần cấu hình những biến nào.
+!.env.production

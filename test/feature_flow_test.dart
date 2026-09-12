@@ -36,7 +36,8 @@ void main() {
   // Bom trang chu truc tiep (khong can dang nhap) voi day du theme
   // va he thong da ngon ngu giong nhu app that.
   Future<void> pumpHome(WidgetTester tester) async {
-    await FavoriteService.instance.load();
+    // Xoa danh sach yeu thich trong bo nho de moi test bat dau trang.
+    await FavoriteService.instance.clear();
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('vi'),

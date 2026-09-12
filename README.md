@@ -85,7 +85,7 @@ Người đi xe buýt hàng ngày gặp nhiều khó khăn, và BusGo tập trun
 | 1 | Backend xác thực | API đăng ký, đăng nhập, đăng nhập Google, lấy thông tin user hiện tại; băm mật khẩu bcrypt; ký/kiểm tra JWT | Hoàn thành |
 | 2 | Cơ sở dữ liệu MySQL | Script tạo database `BusGo` và bảng `users` (bcrypt, phân quyền `role`); tự tạo bảng khi chạy backend | Hoàn thành |
 | 3 | API hồ sơ & quản trị | `GET /api/user/profile` (cần JWT) và `GET /api/admin/users` (chỉ admin) | Hoàn thành |
-| 4 | API dữ liệu tuyến/trạm từ backend | Trả dữ liệu tuyến – trạm – xe tập trung từ server thay vì dữ liệu mẫu trong app | Dự kiến phát triển |
+| 4 | API dữ liệu tuyến/trạm từ backend | Trả dữ liệu tuyến – trạm – xe tập trung từ server thay vì dữ liệu mẫu trong app | Hoàn thành (API) |
 | 5 | Giao diện quản trị (admin) | Màn hình quản lý tài khoản/người dùng trên ứng dụng | Dự kiến phát triển |
 
 ### 3.7. Các chức năng khác
@@ -96,7 +96,7 @@ Người đi xe buýt hàng ngày gặp nhiều khó khăn, và BusGo tập trun
 | 2 | Cài đặt ứng dụng | Chế độ tối/sáng, chọn ngôn ngữ Tiếng Việt / English, tùy chọn nhận thông báo | Hoàn thành |
 | 3 | Xóa bộ nhớ đệm / tải bản đồ ngoại tuyến | Nút xóa cache và tải bản đồ ngoại tuyến trong Cài đặt | Đang phát triển |
 | 4 | Trợ lý ảo (VA) | Nút tròn "VA" trên Trang chủ, hiện hộp thoại giới thiệu trợ lý ảo | Dự kiến phát triển |
-| 5 | Theo dõi xe theo thời gian thực | Cập nhật vị trí xe buýt thời gian thực bằng kết nối thời gian thực (ví dụ Socket.IO / nguồn dữ liệu GPS thật) | Dự kiến phát triển |
+| 5 | Theo dõi xe theo thời gian thực | Cập nhật vị trí xe buýt thời gian thực (API cập nhật vị trí + Socket.IO); giao diện Flutter đang chuyển từ mô phỏng sang nguồn dữ liệu thật | Hoàn thành (API + Socket.IO) |
 
 ---
 
@@ -165,9 +165,9 @@ sequenceDiagram
 | Kiểm thử | `flutter_test` | 2 bộ test trong thư mục `test/` |
 | Công cụ hỗ trợ | Git / GitHub (repository git) | |
 
-Các công cụ khác (`Socket.IO`, `Postman`, `XAMPP`, `Docker`): nếu được dùng trong quá trình làm bài, phần này sẽ được bổ sung. Trong mã nguồn hiện tại **chưa thấy** cấu hình Socket.IO hay Docker.
+Các công cụ khác (`Postman`, `XAMPP`, `Docker`): nếu được dùng trong quá trình làm bài, phần này sẽ được bổ sung. Trong mã nguồn hiện tại **chưa thấy** cấu hình Docker.
 
-> **Socket.IO** chưa được triển khai trong mã nguồn. Nếu có trong tương lai, nó được dùng cho mục tiêu cập nhật vị trí xe buýt theo thời gian thực (hiện tại dữ liệu vị trí xe là mô phỏng bằng `Timer`).
+> **Socket.IO** đã được triển khai ở backend (`server/src/realtime/socket.js`) để phát vị trí xe mới tới các client đang theo dõi tuyến. Ứng dụng Flutter hiện vẫn hiển thị vị trí xe mô phỏng bằng `Timer`, chưa nối vào socket.
 
 ---
 
@@ -199,16 +199,19 @@ busgo/
 │   ├── theme/                    # Theme sáng/tối
 │   └── widgets/                  # Widget dùng chung (RouteCard, nút Google...)
 ├── server/                       # Backend Node.js + Express + MySQL
-│   ├── .env.example              # File mẫu cấu hình môi trường
+│   ├── .env.production           # File MẪU cấu hình production (placeholder)
 │   ├── package.json              # Thư viện backend
 │   ├── sql/BusGo.sql             # Script tạo database + bảng users
+│   ├── sql/transit_schema.sql    # Bảng tuyến/trạm/xe (DDL tham chiếu)
+│   ├── sql/transit_seed.sql      # Dữ liệu minh họa tuyến/trạm/xe
 │   └── src/
 │       ├── server.js             # Điểm khởi động API, gắn middleware/router
 │       ├── config/db.js          # Kết nối MySQL qua Sequelize
-│       ├── controllers/          # Xử lý nghiệp vụ (auth, user)
+│       ├── controllers/          # Xử lý nghiệp vụ (auth, user, transit, bus)
 │       ├── middlewares/          # Xác thực JWT, requireAdmin, validate
-│       ├── models/User.js        # Model bảng users
-│       ├── routes/               # auth.routes, user.routes
+│       ├── models/               # Model users, routes, stops, buses, ...
+│       ├── realtime/socket.js    # Phát vị trí xe qua Socket.IO
+│       ├── routes/               # auth, user, route, stop, bus
 │       └── utils/                # jwt, bcrypt, google, response
 ├── android/ web/ windows/        # Cấu hình nền tảng Flutter
 ├── test/                         # Widget test + test luồng chức năng
@@ -235,6 +238,21 @@ source server/sql/BusGo.sql;
 
 Script tạo database `BusGo` (UTF-8, hỗ trợ tiếng Việt) và bảng `users`. Khi chạy backend, Sequelize tự đồng bộ bảng nếu chưa tồn tại.
 
+Để có dữ liệu tuyến – trạm – xe minh họa, chạy thêm hai script (dữ liệu mẫu, không phải dữ liệu vận hành thật):
+
+```sql
+source server/sql/transit_schema.sql;
+source server/sql/transit_seed.sql;
+```
+
+Bảng `profiles` (hồ sơ cá nhân, mỗi tài khoản một hồ sơ) được tạo tự động khi chạy backend. Nếu muốn tạo thủ công trước:
+
+```sql
+source server/sql/profiles_schema.sql;
+```
+
+> Hồ sơ cá nhân chỉ được backend trả về theo tài khoản trong JWT (`GET/PUT /api/profile/me`), không nhận `userId` từ client — tránh rò rỉ dữ liệu giữa các tài khoản.
+
 > Để tạo tài khoản quản trị thử, chạy: `UPDATE users SET role = 'admin' WHERE username = 'ten_admin_cua_ban';`
 
 ### 7.3. Khởi chạy backend
@@ -244,8 +262,8 @@ cd server
 npm install
 
 # Tạo file .env từ file mẫu và điền thông tin (xem mục 8):
-#   Windows: copy .env.example .env
-#   Linux/macOS: cp .env.example .env
+#   Windows: copy .env.production .env
+#   Linux/macOS: cp .env.production .env
 
 npm start        # API chạy tại http://localhost:3000 (mặc định)
 # hoặc: npm run dev   (tự khởi động lại khi sửa code)
@@ -276,9 +294,9 @@ Dự án có 2 bộ test: kiểm tra màn hình Đăng nhập hiển thị lúc 
 
 ---
 
-## 8. Cấu hình biến môi trường (.env)
+## 8. Cấu hình biến môi trường
 
-Sao chép `server/.env.example` thành `server/.env` và điền các giá trị **mẫu** (không dùng khóa thật):
+**Chạy local:** sao chép `server/.env.production` thành `server/.env` và điền các giá trị thật (không dùng khóa mẫu):
 
 ```env
 # Cổng chạy API (mặc định 3000)
@@ -298,6 +316,16 @@ JWT_EXPIRES_IN=7d
 
 # Client ID Web của Google OAuth (nhiều ID phân cách bằng dấu phẩy)
 GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+```
+
+**Chạy production:** đặt `NODE_ENV=production`, backend sẽ đọc `server/.env.production`. File này trong repo chỉ chứa placeholder an toàn; khi triển khai thật hãy đặt biến môi trường trực tiếp trên máy chủ (không commit secret thật).
+
+```bash
+# Linux/macOS
+NODE_ENV=production npm start
+
+# Windows (cmd)
+set NODE_ENV=production && npm start
 ```
 
 > **Cảnh báo:** không bao giờ đưa file `.env` lên GitHub (file đã nằm trong `.gitignore`). Không commit `JWT_SECRET`, mật khẩu MySQL hay client ID thật vào repository.
@@ -329,8 +357,23 @@ GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
 | `GET` | `/api/auth/me` | Lấy thông tin user hiện tại | JWT |
 | `GET` | `/api/user/profile` | Lấy hồ sơ cá nhân của user đang đăng nhập | JWT |
 | `GET` | `/api/admin/users` | Danh sách tất cả tài khoản | JWT + `role = admin` |
+| `GET` | `/api/profile/me` | Lấy hồ sơ cá nhân của chính tài khoản đang đăng nhập | JWT |
+| `PUT` | `/api/profile/me` | Cập nhật hồ sơ (họ tên, email, điện thoại, ngày sinh, địa chỉ, ảnh đại diện) | JWT |
+| `GET` | `/api/routes` | Danh sách tuyến xe buýt | Public |
+| `GET` | `/api/routes/:routeId` | Chi tiết một tuyến | Public |
+| `GET` | `/api/routes/:routeId/stops?direction=0` | Danh sách trạm của tuyến theo chiều | Public |
+| `GET` | `/api/routes/:routeId/path?direction=0` | Tọa độ polyline của tuyến theo chiều | Public |
+| `GET` | `/api/routes/:routeId/buses` | Xe của tuyến + vị trí mới nhất | Public |
+| `GET` | `/api/stops?q=...` | Danh sách trạm, lọc theo tên/địa chỉ | Public |
+| `GET` | `/api/stops/nearby?latitude=..&longitude=..&radius=2000` | Trạm gần vị trí (Haversine), có `distanceMeters` | Public |
+| `GET` | `/api/stops/:stopId` | Chi tiết trạm + các tuyến đi qua | Public |
+| `GET` | `/api/stops/:stopId/routes` | Các tuyến đi qua trạm | Public |
+| `GET` | `/api/stops/:stopId/arrivals` | Dự kiến xe sắp tới trạm | Public |
+| `POST` | `/api/buses/:busId/location` | Cập nhật vị trí xe (`routeId`, `latitude`, `longitude`, `speed?`, `heading?`) | JWT + `role = admin` |
 
 Mọi API protected gửi token qua header: `Authorization: Bearer <JWT_TOKEN>`. Ứng dụng Flutter tự động đính kèm header này thông qua `ApiService`.
+
+> `POST /api/buses/:busId/location` sau khi lưu thành công sẽ phát sự kiện Socket.IO `bus:location-updated` tới phòng `route:<routeId>`. Client gửi `route:join` / `route:leave` để theo dõi hoặc rời một tuyến. Hiện hệ thống chỉ có vai trò `user`/`admin` nên endpoint yêu cầu `admin`.
 
 ---
 
@@ -347,8 +390,8 @@ Mọi API protected gửi token qua header: `Authorization: Bearer <JWT_TOKEN>`.
 
 ## 11. Định hướng phát triển trong tương lai
 
-1. **Đồng bộ dữ liệu tuyến – trạm – xe** lên backend (thay dữ liệu mẫu nhúng trong app bằng API).
-2. **Theo dõi xe thời gian thực**: thay dữ liệu mô phỏng bằng nguồn GPS thật, có thể qua **Socket.IO**.
+1. **Đồng bộ dữ liệu tuyến – trạm – xe lên app Flutter**: backend đã có API, cần chuyển các màn hình tra cứu sang gọi API thay vì dữ liệu mẫu nhúng trong app.
+2. **Theo dõi xe thời gian thực trên giao diện**: backend đã có `POST /api/buses/:busId/location` và Socket.IO; cần nối Flutter vào nguồn dữ liệu thật (thay mô phỏng bằng `Timer`).
 3. **Giao diện quản trị** (admin) trên ứng dụng để quản lý tài khoản, tuyến, trạm.
 4. **Thông báo** kết nối dữ liệu backend và gửi thông báo thực tế khi xe sắp đến trạm.
 5. **Trợ lý ảo (VA)** hỏi đáp tự động về tuyến xe.
