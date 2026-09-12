@@ -30,12 +30,35 @@ async function initDatabase() {
   try {
     await sequelize.authenticate(); // Kiểm tra kết nối
     await sequelize.sync(); // Tạo bảng nếu chưa tồn tại
+    await ensureUsersGoogleColumn(); // Bổ sung cột google_id cho bảng cũ
     console.log('[OK] Kết nối MySQL thành công, database: BusGo');
   } catch (err) {
     // Không dừng server: người dùng vẫn thấy thông báo lỗi thân thiện ở API.
     console.error('[LỖI] Không kết nối được MySQL:', err.message);
     console.error('      -> Kiểm tra .env và đảm bảo MySQL đang chạy.');
   }
+}
+
+// Bổ sung cột google_id cho bảng users đã tồn tại TRƯỚC khi có tính năng
+// đăng nhập bằng Google. sequelize.sync() chỉ TẠO bảng mới, không thêm cột
+// vào bảng cũ, nên cần chạy lệnh ALTER TABLE an toàn:
+//   - kiểm tra cột đã tồn tại chưa (information_schema)
+//   - chưa có mới thêm, KHÔNG xóa / sửa cột nào khác
+async function ensureUsersGoogleColumn() {
+  const [rows] = await sequelize.query(
+    "SELECT COUNT(*) AS c FROM information_schema.COLUMNS " +
+      "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' " +
+      "AND COLUMN_NAME = 'google_id'",
+  );
+  const count = Number(rows?.[0]?.c || 0);
+  if (count > 0) return;
+
+  await sequelize.query(
+    'ALTER TABLE users ' +
+      'ADD COLUMN google_id VARCHAR(255) NULL, ' +
+      'ADD UNIQUE KEY users_google_id_unique (google_id)',
+  );
+  console.log('[OK] Đã thêm cột google_id vào bảng users (đăng nhập bằng Google)');
 }
 
 // Tạo ứng dụng Express.
@@ -70,6 +93,7 @@ app.listen(PORT, async () => {
   console.log(`API BusGo đang chạy tại: http://localhost:${PORT}`);
   console.log(`- Đăng ký:      POST /api/auth/register`);
   console.log(`- Đăng nhập:    POST /api/auth/login   (trả về JWT)`);
+  console.log(`- Google:       POST /api/auth/google   (đăng nhập nhanh bằng Google)`);
   console.log(`- Thông tin tôi: GET /api/auth/me      (cần JWT)`);
   console.log(`- Hồ sơ:        GET /api/user/profile  (cần JWT)`);
   console.log(`- Admin:        GET /api/admin/users   (cần role=admin)`);

@@ -2,6 +2,7 @@
 // controllers/auth.controller.js - Xử lý nghiệp vụ xác thực:
 //   - POST /api/auth/register  : đăng ký tài khoản mới
 //   - POST /api/auth/login     : đăng nhập, trả về JWT + user
+//   - POST /api/auth/google    : đăng ký / đăng nhập nhanh bằng Google
 //   - GET  /api/auth/me        : lấy thông tin user hiện tại (cần JWT)
 //
 // Dữ liệu được lưu qua Sequelize (models/User.js) vào bảng users
@@ -11,8 +12,13 @@
 
 import { Op } from 'sequelize';
 import User from '../models/User.js';
-import { comparePassword, hashPassword } from '../utils/password.util.js';
+import {
+  comparePassword,
+  generateRandomPassword,
+  hashPassword,
+} from '../utils/password.util.js';
 import { failure, success } from '../utils/response.util.js';
+import { isGoogleAuthConfigured, verifyGoogleIdToken } from '../utils/google.util.js';
 import { signToken } from '../utils/jwt.util.js';
 
 // ------------------------------------------------------------
@@ -127,6 +133,122 @@ export async function login(req, res) {
   } catch (err) {
     return failure(res, dbError(err), 500);
   }
+}
+
+// ------------------------------------------------------------
+// ĐĂNG KÝ / ĐĂNG NHẬP NHANH BẰNG GOOGLE.
+// Nhận:  { idToken }  (ID token từ app Flutter sau khi chọn tài khoản Google)
+// Xử lý:
+//   - Xác minh token với Google (chữ ký + aud + email_verified).
+//   - Đã có tài khoản theo google_id   -> đăng nhập luôn (trả JWT).
+//   - Có tài khoản trùng email         -> liên kết google_id -> đăng nhập.
+//   - Chưa có tài khoản nào            -> tự tạo mới (username sinh tự động,
+//     mật khẩu ngẫu nhiên bí mật, không cần người dùng nhập).
+// Trả về: { success, message, token, user }
+// ------------------------------------------------------------
+export async function googleLogin(req, res) {
+  const { idToken } = req.body || {};
+
+  // Bước 0: kiểm tra dữ liệu cơ bản + server đã cấu hình Google chưa.
+  if (!idToken || typeof idToken !== 'string' || idToken.length < 20) {
+    return failure(res, 'Thiếu idToken hợp lệ từ Google', 400);
+  }
+  if (!isGoogleAuthConfigured()) {
+    return failure(res, 'Máy chủ chưa cấu hình GOOGLE_CLIENT_ID để đăng nhập bằng Google', 500);
+  }
+
+  // Bước 1: xác minh token với Google (token giả/đã hết hạn -> bị từ chối).
+  let payload;
+  try {
+    payload = await verifyGoogleIdToken(idToken);
+  } catch (err) {
+    console.error('[Lỗi xác thực Google]', err.message);
+    return failure(res, 'Xác thực Google không thành công, vui lòng thử lại', 401);
+  }
+
+  const googleId = String(payload.sub || '');
+  const email = (payload.email || '').trim();
+  if (!googleId || !email) {
+    return failure(res, 'Tài khoản Google của bạn không có email hợp lệ', 400);
+  }
+  const googleName = (payload.name || '').trim();
+
+  try {
+    // Bước 2: tìm tài khoản đã liên kết Google (theo google_id), nếu không
+    // tìm theo email (tài khoản đăng ký thủ công trước đó).
+    let user = await User.findOne({ where: { googleId } });
+    if (!user) {
+      user = await User.findOne({ where: { email } });
+    }
+
+    let created = false;
+
+    if (!user) {
+      // Bước 3a: chưa có tài khoản -> TỰ ĐĂNG KÝ bằng thông tin Google.
+      const username = await generateUniqueUsername(email);
+      // Mật khẩu ngẫu nhiên: người dùng Google không đặt mật khẩu,
+      // nhưng bảng users yêu cầu password NOT NULL nên cần giá trị hợp lệ.
+      const hashedPassword = await hashPassword(generateRandomPassword());
+
+      user = await User.create({
+        username,
+        email,
+        name: truncateName(googleName) || username,
+        password: hashedPassword,
+        googleId,
+        role: 'user',
+      });
+      created = true;
+    } else if (!user.googleId) {
+      // Bước 3b: tài khoản trùng email -> liên kết Google ID vào lần đầu.
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    // Bước 4: tạo JWT giống đăng nhập thường, đi thẳng vào tài khoản.
+    const token = signToken(user);
+    const message = created
+      ? 'Đăng ký tài khoản bằng Google thành công'
+      : 'Đăng nhập bằng Google thành công';
+    return success(res, { token, user: publicUser(user) }, message, created ? 201 : 200);
+  } catch (err) {
+    // Trùng google_id/email khi gửi đồng thời (hiếm gặp).
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return failure(res, 'Tài khoản Google này đã được liên kết với tài khoản khác', 409);
+    }
+    return failure(res, dbError(err), 500);
+  }
+}
+
+// Tạo tên đăng nhập (username) duy nhất từ email Google.
+// Ví dụ: "nguyenvana@gmail.com" -> thử "nguyenvana", đã có -> "nguyenvana1"...
+async function generateUniqueUsername(email) {
+  // Lấy phần trước @, bỏ ký tự đặc biệt/dấu tiếng Việt.
+  let base = (email.split('@')[0] || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '');
+  if (base.length < 3) {
+    base = 'user';
+  }
+  base = base.slice(0, 32);
+
+  let candidate = base;
+  let suffix = 0;
+  // Tăng hậu tố 1, 2, 3... cho đến khi tên chưa bị ai dùng.
+  while (suffix < 100000) {
+    const exists = await User.findOne({ where: { username: candidate } });
+    if (!exists) return candidate;
+    suffix++;
+    candidate = (base.slice(0, 32 - String(suffix).length) + suffix);
+  }
+  // Hiếm khi rơi vào đây: dùng thêm timestamp để chắc chắn duy nhất.
+  return base.slice(0, 24) + Date.now().toString().slice(-8);
+}
+
+// Giới hạn tên hiển thị theo cột name VARCHAR(50) của bảng users.
+function truncateName(name) {
+  if (!name) return '';
+  return name.slice(0, 50);
 }
 
 // ------------------------------------------------------------

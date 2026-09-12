@@ -13,7 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/auth_service.dart';
+import '../../services/google_auth_service.dart';
+import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/google_sign_in_button.dart';
+import '../home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -86,6 +90,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text(result.message)));
     }
+  }
+
+  // Đăng ký nhanh bằng Google: backend tự xác minh ID token, tạo tài khoản
+  // (nếu chưa có) và trả JWT -> vào thẳng Trang chủ.
+  Future<void> _handleGoogleIdToken(String idToken) async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final result = await AuthService.instance.googleLogin(idToken);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.success && result.user != null) {
+      SessionService.instance.login(result.user!);
+      if (!mounted) return;
+
+      // Vào thẳng Trang chủ (đã có tài khoản sẵn sàng để dùng).
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message)));
+    }
+  }
+
+  // Hiện thông báo lỗi khi hộp thoại Google thất bại.
+  void _handleGoogleError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -270,6 +310,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                     ),
                   ),
+
+                  // ---- Đăng ký nhanh bằng Google (nếu nền tảng hỗ trợ) ----
+                  if (GoogleAuthService.instance.isGoogleSignInAvailable) ...[
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(color: colors.outlineVariant),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'HOẶC',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(color: colors.outlineVariant),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Nút mở hộp thoại Google -> ID token -> backend tự tạo
+                    // tài khoản mới nếu chưa từng đăng ký bằng email này.
+                    GoogleSignInButton(
+                      label: 'Đăng ký nhanh bằng Google',
+                      onIdToken: _handleGoogleIdToken,
+                      onError: _handleGoogleError,
+                    ),
+                  ],
                 ],
               ),
             ),

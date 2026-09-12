@@ -92,6 +92,31 @@ class AuthService {
   }
 
   // ------------------------------------------------------------
+  // ĐĂNG NHẬP / ĐĂNG KÝ NHANH BẰNG GOOGLE.
+  // Gửi:  { idToken }  (ID token lấy từ GoogleSignIn ở app)
+  // Backend tự XÁC MINH token với Google rồi:
+  //   - Tài khoản Google đã có  -> đăng nhập.
+  //   - Chưa có                 -> tự tạo tài khoản mới (đăng ký nhanh).
+  // Trả về: { success, message, token, user } như đăng nhập thường.
+  // ------------------------------------------------------------
+  Future<AuthResult> googleLogin(String idToken) async {
+    final result = await ApiService.instance.post(
+      '/auth/google',
+      body: {'idToken': idToken},
+    );
+
+    if (result.success && result.data != null) {
+      await _persistSession(result.data!);
+      return AuthResult(
+        success: true,
+        message: result.message,
+        user: UserAccount.fromJson(_userJson(result.data!)),
+      );
+    }
+    return AuthResult(success: false, message: result.message);
+  }
+
+  // ------------------------------------------------------------
   // KIỂM TRA SESSION khi mở app.
   //   1. Đọc token trong secure storage.
   //   2. Không có token          -> chưa đăng nhập.

@@ -16,6 +16,7 @@ import 'package:google_polyline_algorithm/google_polyline_algorithm.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import '../config/tile_config.dart';
 import '../l10n/app_localizations.dart';
 import '../models/user_location.dart';
 import '../services/location_service.dart';
@@ -502,18 +503,15 @@ class _MapScreenState extends State<MapScreen> {
         ),
         children: [
           TileLayer(
-            // Nen ban do dung Esri World Street Map (mien phi, khong can API key).
-            // CartoDB basemaps gio bao loi "API KEY REQUIRED" khi khong co key,
-            // con tile.openstreetmap.org bi loi DNS (errno 11001) tren mang nay.
-            urlTemplate:
-                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+            // Nguon ban do lay tu tile_config.dart (mac dinh Esri,
+            // co san OSM de chuyen doi sau). Khong hardcode URL trong Widget.
+            urlTemplate: TileConfig.current.urlTemplate,
             // User-Agent de server tile nhan dien app (khong bi chan).
-            userAgentPackageName: 'com.example.busgo',
+            userAgentPackageName: TileConfig.current.userAgentPackageName,
           ),
-          // Ghi nguon ban do.
-          const SimpleAttributionWidget(
-            source:
-                Text('Bản đồ © Esri — Dữ liệu © OpenStreetMap contributors'),
+          // Ghi nguon ban do (attribution) theo dung tile dang dung.
+          SimpleAttributionWidget(
+            source: Text(TileConfig.current.attribution),
           ),
           // Lop marker cac tram + marker "Vị trí của bạn".
           MarkerLayer(markers: [..._buildMarkers(), ..._buildUserMarkers()]),

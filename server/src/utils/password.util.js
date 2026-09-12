@@ -8,6 +8,7 @@
 // ------------------------------------------------------------
 
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 
 // Số vòng băm: càng cao càng khó bẻ khóa nhưng chậm hơn.
 const SALT_ROUNDS = 10;
@@ -22,4 +23,11 @@ export async function hashPassword(plainPassword) {
 // Trả về true nếu khớp, false nếu không khớp.
 export async function comparePassword(plainPassword, hashedPassword) {
   return bcrypt.compare(plainPassword, hashedPassword);
+}
+
+// Sinh mật khẩu ngẫu nhiên KHÔNG THỂ ĐOÁN cho tài khoản đăng ký bằng Google.
+// Người dùng đăng nhập bằng Google sẽ không cần biết mật khẩu này,
+// nó chỉ tồn tại để bảng users (password NOT NULL) luôn hợp lệ.
+export function generateRandomPassword() {
+  return crypto.randomBytes(24).toString('hex'); // 48 ký tự hex
 }

@@ -2,9 +2,9 @@
 // Màn hình ĐĂNG NHẬP của ứng dụng BusGo.
 //
 // Đặc điểm thiết kế (theo yêu cầu):
-//  - Chỉ đăng nhập bằng tên đăng nhập + mật khẩu lưu trong MySQL.
-//  - KHÔNG có phần "Quên mật khẩu".
-//  - KHÔNG có nút "Đăng nhập bằng Google".
+//  - Đăng nhập bằng tên đăng nhập + mật khẩu lưu trong MySQL.
+//  - Ngoài ra có nút "Đăng nhập bằng Google" để đăng ký/đăng nhập
+//    nhanh (chạy trên Android/iOS/macOS/Web).
 //  - Có ô tick "Ghi nhớ đăng nhập": khi tích, tên đăng nhập được lưu lại
 //    và sẽ tự điền sẵn (autofill) vào lần sau kể cả sau khi đăng xuất.
 //
@@ -17,9 +17,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../services/google_auth_service.dart';
 import '../../services/remember_me_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/google_sign_in_button.dart';
 import '../home_screen.dart';
 import 'register_screen.dart';
 
@@ -133,6 +135,53 @@ class _LoginScreenState extends State<LoginScreen> {
       _usernameController.text = newUsername;
       _passwordController.clear();
     }
+  }
+
+  // Xử lý khi app nhận được ID token hợp lệ từ Google.
+  // → Đưa token lên backend, backend tự xác minh rồi tạo/liên kết tài
+  //   khoản và trả JWT. Sau đó vào thẳng Trang chủ như đăng nhập thường.
+  Future<void> _handleGoogleIdToken(String idToken) async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    // Gọi API /auth/google: đăng nhập nếu đã đăng ký, tự tạo tài khoản
+    // nếu chưa từng đăng ký (đăng ký nhanh).
+    final result = await AuthService.instance.googleLogin(idToken);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.success && result.user != null) {
+      // Google không có "tên đăng nhập" để ghi nhớ -> xóa dữ liệu cũ.
+      await RememberMeService.instance.saveRemembered(
+        remembered: false,
+        username: '',
+      );
+
+      // Ghi nhận phiên đăng nhập cho các màn hình khác dùng chung.
+      SessionService.instance.login(result.user!);
+
+      if (!mounted) return;
+
+      // Vào thẳng Trang chủ.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message)));
+    }
+  }
+
+  // Hiện thông báo lỗi khi hộp thoại Google thất bại.
+  void _handleGoogleError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -284,6 +333,42 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+
+                  // ---- Đăng nhập nhanh bằng Google (nếu nền tảng hỗ trợ) ----
+                  if (GoogleAuthService.instance.isGoogleSignInAvailable) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(color: colors.outlineVariant),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'HOẶC',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(color: colors.outlineVariant),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Nút mở hộp thoại chọn tài khoản Google ->
+                    // lấy ID token -> gửi lên backend /api/auth/google.
+                    GoogleSignInButton(
+                      label: 'Đăng nhập bằng Google',
+                      onIdToken: _handleGoogleIdToken,
+                      onError: _handleGoogleError,
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   // Đường dẫn chuyển sang màn hình đăng ký tài khoản mới.

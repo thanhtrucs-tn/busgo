@@ -7,6 +7,7 @@
 //   - email       : phục vụ đăng nhập bằng email (tùy chọn)
 //   - name        : tên hiển thị (mặc định bằng username)
 //   - role        : phân quyền ('user' | 'admin')
+//   - google_id   : mã định danh tài khoản Google (đăng ký/đăng nhập nhanh)
 //   - updated_at  : thời điểm cập nhật (Sequelize tự quản lý)
 //
 // QUAN TRỌNG: không tạo bảng mới, không xóa dữ liệu hiện có.
@@ -34,6 +35,12 @@ User.init(
       type: DataTypes.STRING(255),
       allowNull: true, // Không bắt buộc; NULL cho phép nhiều user bỏ trống email
       unique: true, // Nếu có email thì phải duy nhất
+    },
+    googleId: {
+      type: DataTypes.STRING(255),
+      allowNull: true, // Chỉ tài khoản đăng ký bằng Google mới có
+      unique: true, // Nếu có Google ID thì phải duy nhất
+      field: 'google_id', // Ánh xạ đúng cột google_id trong MySQL
     },
     password: {
       type: DataTypes.STRING(64), // Chuỗi bcrypt dài 60 ký tự
