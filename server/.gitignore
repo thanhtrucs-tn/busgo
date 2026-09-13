@@ -1,4 +1,4 @@
-# Không đưa thư mục cài đặt và file mật khẩu lên git.
+# Không đưa thư mục cài đặt và file môi trường thật lên Git.
 node_modules/
 .env
 .env.local

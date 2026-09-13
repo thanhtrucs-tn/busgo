@@ -11,6 +11,7 @@
 import Bus from '../models/Bus.js';
 import BusLocation from '../models/BusLocation.js';
 import Route from '../models/Route.js';
+import { sequelize } from '../config/db.js';
 import { emitBusLocation, emitBusStatus } from '../realtime/socket.js';
 import { failure, success } from '../utils/response.util.js';
 
@@ -108,22 +109,35 @@ export async function updateBusLocation(req, res) {
       return failure(res, 'Không tìm thấy tuyến xe buýt', 404);
     }
 
-    const location = await BusLocation.create({
-      busId,
-      latitude,
-      longitude,
-      speed,
-      heading,
-      recordedAt: new Date(),
-    });
-
-    // Xe đang chạy thì đánh dấu RUNNING; nếu đổi tuyến thì cập nhật theo.
+    // Lưu vị trí mới và trạng thái xe trong cùng một transaction:
+    // nếu bước sau lỗi thì bước trước cũng được hoàn tác.
     const previousStatus = bus.status;
-    bus.status = 'RUNNING';
-    if (bus.routeId !== routeId) {
-      bus.routeId = routeId;
+    const transaction = await sequelize.transaction();
+    let location;
+    try {
+      location = await BusLocation.create(
+        {
+          busId,
+          latitude,
+          longitude,
+          speed,
+          heading,
+          recordedAt: new Date(),
+        },
+        { transaction },
+      );
+
+      // Xe đang chạy thì đánh dấu RUNNING; nếu đổi tuyến thì cập nhật theo.
+      bus.status = 'RUNNING';
+      if (bus.routeId !== routeId) {
+        bus.routeId = routeId;
+      }
+      await bus.save({ transaction });
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
     }
-    await bus.save();
 
     const updatedAt = location.recordedAt.toISOString();
 

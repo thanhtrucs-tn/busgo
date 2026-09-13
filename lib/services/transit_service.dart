@@ -48,7 +48,10 @@ class TransitService {
   }
 
   // Danh sách tuyến kèm danh sách trạm (dùng cho màn hình chi tiết tuyến).
-  Future<BusRoute> fetchRouteWithStops(String routeId, {int direction = 0}) async {
+  Future<BusRoute> fetchRouteWithStops(
+    String routeId, {
+    int direction = 0,
+  }) async {
     final route = await fetchRoute(routeId);
     final routeStops = await fetchRouteStops(routeId, direction: direction);
     return route.copyWithStops(routeStops.map((rs) => rs.stop).toList());

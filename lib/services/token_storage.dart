@@ -27,7 +27,10 @@ class TokenStorage {
 
   // Lưu token + thông tin user sau khi đăng nhập thành công.
   // Ví dụ: await TokenStorage.instance.save(token: 'eyJ...', user: {...});
-  Future<void> save({required String token, required Map<String, dynamic> user}) async {
+  Future<void> save({
+    required String token,
+    required Map<String, dynamic> user,
+  }) async {
     try {
       await _storage.write(key: _keyToken, value: token);
       await _storage.write(key: _keyUser, value: jsonEncode(user));

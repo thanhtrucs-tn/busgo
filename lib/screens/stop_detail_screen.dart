@@ -45,8 +45,9 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
     });
 
     try {
-      final routes =
-          await TransitService.instance.fetchStopRoutes(widget.stop.id);
+      final routes = await TransitService.instance.fetchStopRoutes(
+        widget.stop.id,
+      );
 
       // Xe đang đến là thông tin phụ: lỗi ở đây không làm hỏng cả màn hình.
       List<StopArrival> arrivals = const [];
@@ -67,8 +68,9 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -195,15 +197,19 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.primaryContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    context.tr('route_count',
-                        params: {'count': '${_routes.length}'}),
+                    context.tr(
+                      'route_count',
+                      params: {'count': '${_routes.length}'},
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -272,15 +278,19 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
               const Spacer(),
               if (_arrivals.isNotEmpty)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.primaryContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    context.tr('bus_count',
-                        params: {'count': '${_arrivals.length}'}),
+                    context.tr(
+                      'bus_count',
+                      params: {'count': '${_arrivals.length}'},
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -353,8 +363,10 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    context.tr('arrival_eta',
-                        params: {'minutes': '${arrival.estimatedMinutes}'}),
+                    context.tr(
+                      'arrival_eta',
+                      params: {'minutes': '${arrival.estimatedMinutes}'},
+                    ),
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -368,9 +380,10 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  context.tr('arrival_distance', params: {
-                    'distance': '${arrival.distanceMeters} m',
-                  }),
+                  context.tr(
+                    'arrival_distance',
+                    params: {'distance': '${arrival.distanceMeters} m'},
+                  ),
                   style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurfaceVariant,
@@ -379,8 +392,10 @@ class _StopDetailScreenState extends State<StopDetailScreen> {
                 if (arrival.isSimulated) ...[
                   const SizedBox(height: 4),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),

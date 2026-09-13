@@ -34,8 +34,11 @@ class Bus {
 
   // Có tọa độ hợp lệ để hiển thị trên bản đồ hay không.
   bool get hasLocation =>
-      latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
-      && (latitude != 0 || longitude != 0);
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180 &&
+      (latitude != 0 || longitude != 0);
 
   // Tạo Bus từ JSON của API GET /api/routes/:routeId/buses.
   factory Bus.fromJson(Map<String, dynamic> json) {

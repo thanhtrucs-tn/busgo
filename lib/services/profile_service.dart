@@ -91,7 +91,10 @@ class ProfileService extends ChangeNotifier {
     // Dọn dữ liệu hồ sơ dùng chung còn sót lại của phiên bản lỗi trước.
     await purgeLegacyCache();
 
-    final result = await ApiService.instance.get('/profile/me', protected: true);
+    final result = await ApiService.instance.get(
+      '/profile/me',
+      protected: true,
+    );
 
     if (result.success && result.data != null) {
       _applyJson(_payload(result.data!));
@@ -133,7 +136,9 @@ class ProfileService extends ChangeNotifier {
       'name': (name ?? _name).trim(),
       'email': (email ?? _email).trim(),
       'phone': (phone ?? _phone).trim(),
-      'birthday': effectiveBirthday == null ? null : _dateOnly(effectiveBirthday),
+      'birthday': effectiveBirthday == null
+          ? null
+          : _dateOnly(effectiveBirthday),
       'avatar': effectiveAvatar == null ? null : base64Encode(effectiveAvatar),
       'addresses': addresses ?? _addresses,
       'defaultAddressIndex': defaultAddressIndex ?? _defaultAddressIndex,
@@ -141,8 +146,11 @@ class ProfileService extends ChangeNotifier {
       'locationLng': locationLng ?? _locationLng,
     };
 
-    final result =
-        await ApiService.instance.put('/profile/me', body: body, protected: true);
+    final result = await ApiService.instance.put(
+      '/profile/me',
+      body: body,
+      protected: true,
+    );
 
     if (result.success && result.data != null) {
       _applyJson(_payload(result.data!));
@@ -195,7 +203,9 @@ class ProfileService extends ChangeNotifier {
         : DateTime.tryParse(birthdayStr);
 
     final avatar = json['avatar'] as String?;
-    _avatarBytes = (avatar == null || avatar.isEmpty) ? null : base64Decode(avatar);
+    _avatarBytes = (avatar == null || avatar.isEmpty)
+        ? null
+        : base64Decode(avatar);
 
     final list = json['addresses'];
     _addresses = list is List

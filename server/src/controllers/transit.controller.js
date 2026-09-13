@@ -13,6 +13,8 @@
 // Validate tham số đầu vào, trả status phù hợp, KHÔNG trả stack trace.
 // ------------------------------------------------------------
 
+import { Op } from 'sequelize';
+
 import Route from '../models/Route.js';
 import Stop from '../models/Stop.js';
 import RouteStop from '../models/RouteStop.js';
@@ -186,7 +188,6 @@ export async function listStops(req, res) {
 
     // Nếu có từ khóa, lọc theo tên hoặc địa chỉ (không phân biệt hoa/thường).
     if (q) {
-      const { Op } = await import('sequelize');
       where[Op.or] = [
         { stopName: { [Op.like]: `%${q}%` } },
         { address: { [Op.like]: `%${q}%` } },
@@ -517,6 +518,3 @@ function publicStop(stop) {
     status: stop.status,
   };
 }
-
-// Xuất thêm publicStop/publicRoute nếu cần dùng nơi khác.
-export { publicRoute, publicStop };

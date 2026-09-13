@@ -14,6 +14,7 @@ import '../l10n/app_localizations.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/section_title.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -47,9 +48,9 @@ class ProfileScreen extends StatelessWidget {
     } catch (_) {
       // Loi quyen / khong mo duoc thu vien -> thong bao cho nguoi dung.
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('avatar_pick_error'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('avatar_pick_error'))));
     }
   }
 
@@ -156,7 +157,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // ------------------------- Thong tin ca nhan -------------------------
-              _SectionTitle(context.tr('personal_info')),
+              SectionTitle(context.tr('personal_info')),
               Card(
                 margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 child: Column(
@@ -185,7 +186,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // ------------------------- Dia chi -------------------------
-              _SectionTitle(context.tr('addresses')),
+              SectionTitle(context.tr('addresses')),
               if (profile.addresses.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -196,8 +197,10 @@ class ProfileScreen extends StatelessWidget {
                 )
               else
                 Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   child: Column(
                     children: [
                       for (int i = 0; i < profile.addresses.length; i++) ...[
@@ -210,7 +213,8 @@ class ProfileScreen extends StatelessWidget {
                         _AddressRow(
                           index: i,
                           address: profile.addresses[i],
-                          isDefault: profile.addresses.length > 1 &&
+                          isDefault:
+                              profile.addresses.length > 1 &&
                               i == profile.defaultAddressIndex,
                         ),
                       ],
@@ -340,10 +344,7 @@ class _AddressRow extends StatelessWidget {
           Expanded(
             child: Text(
               address,
-              style: TextStyle(
-                fontSize: 14,
-                color: colors.onSurface,
-              ),
+              style: TextStyle(fontSize: 14, color: colors.onSurface),
             ),
           ),
           if (isDefault)
@@ -368,24 +369,3 @@ class _AddressRow extends StatelessWidget {
   }
 }
 
-// Tieu de nho cua mot phan tren man hinh.
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: context.colors.onSurface,
-        ),
-      ),
-    );
-  }
-}

@@ -86,7 +86,7 @@ export async function updateMyProfile(req, res) {
     return failure(res, validationError, 400);
   }
 
-  const name = String(body.name).trim();
+  const name = body.name.trim();
   const email = (body.email || '').trim() || null;
   const phone = (body.phone || '').trim() || null;
   const birthday = (body.birthday || '').trim() || null;
@@ -127,8 +127,9 @@ export async function updateMyProfile(req, res) {
     profile.avatar = avatar;
     profile.addresses = addresses.length ? JSON.stringify(addresses) : null;
     profile.defaultAddressIndex = defaultAddressIndex;
-    profile.locationLat = body.locationLat === null ? null : Number(body.locationLat);
-    profile.locationLng = body.locationLng === null ? null : Number(body.locationLng);
+    // Không gửi tọa độ (undefined) hoặc gửi null đều hiểu là xóa vị trí đã lưu.
+    profile.locationLat = body.locationLat == null ? null : Number(body.locationLat);
+    profile.locationLng = body.locationLng == null ? null : Number(body.locationLng);
     await profile.save();
 
     return success(res, publicProfile(req.user, profile), 'Cập nhật hồ sơ thành công');
@@ -143,21 +144,33 @@ export async function updateMyProfile(req, res) {
 
 // Kiểm tra toàn bộ dữ liệu đầu vào; trả null nếu hợp lệ.
 function validateProfileInput(body) {
-  const name = (body.name || '').trim();
-  if (!name) return 'Vui lòng nhập họ và tên';
-  if (name.length > 50) return 'Họ và tên tối đa 50 ký tự';
+  if (typeof body.name !== 'string' || !body.name.trim()) {
+    return 'Vui lòng nhập họ và tên';
+  }
+  if (body.name.trim().length > 50) {
+    return 'Họ và tên tối đa 50 ký tự';
+  }
 
+  if (typeof body.email !== 'string' && body.email != null) {
+    return 'Email không hợp lệ';
+  }
   const email = (body.email || '').trim();
   if (email) {
     if (email.length > 48) return 'Email tối đa 48 ký tự';
     if (!EMAIL_REGEX.test(email)) return 'Email không đúng định dạng';
   }
 
+  if (typeof body.phone !== 'string' && body.phone != null) {
+    return 'Số điện thoại không hợp lệ';
+  }
   const phone = (body.phone || '').trim();
   if (phone && !PHONE_REGEX.test(phone)) {
     return 'Số điện thoại gồm 10 chữ số, bắt đầu bằng số 0';
   }
 
+  if (typeof body.birthday !== 'string' && body.birthday != null) {
+    return 'Ngày sinh không hợp lệ';
+  }
   const birthday = (body.birthday || '').trim();
   if (birthday && Number.isNaN(Date.parse(birthday))) {
     return 'Ngày sinh không hợp lệ';

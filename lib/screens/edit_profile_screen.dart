@@ -10,20 +10,21 @@
 // Luu anh dang BYTES (Uint8List) + Image.memory: tuong thich moi nen tang
 // (Android, Windows, Web) - khong dung dart:io File vi se loi tren Web.
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
+import '../services/geocoding_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/section_title.dart';
 
 // Regex kiem tra email: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
-final RegExp _emailReg = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+final RegExp _emailReg = RegExp(
+  r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+);
 // Regex kiem tra so dien thoai: dung 10 chu so, bat dau bang so 0.
 final RegExp _phoneReg = RegExp(r'^0[0-9]{9}$');
 
@@ -154,9 +155,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (_) {
       // Loi quyen / khong mo duoc thu vien -> thong bao cho nguoi dung.
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('avatar_pick_error'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr('avatar_pick_error'))));
     }
   }
 
@@ -220,14 +221,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           // Bước 4: chuyển tọa độ -> địa chỉ. Nếu dịch vụ đảo tọa độ
           // không hoạt động (mất mạng...) thì dùng chuỗi tọa độ dạng đọc được,
           // LUÔN đưa kết quả vào ô địa chỉ đầu để người dùng thấy ngay.
-          final address = await _reverseGeocode(
+          final address = await GeocodingService.instance.reverse(
             position.latitude,
             position.longitude,
           );
           final display = (address != null && address.isNotEmpty)
               ? address
               : '${position.latitude.toStringAsFixed(5)}, '
-                  '${position.longitude.toStringAsFixed(5)}';
+                    '${position.longitude.toStringAsFixed(5)}';
           // Luon co it nhat 1 o dia chi (xem _addressCtrls khi khoi tao).
           _addressCtrls.first.text = display;
           // Rebuild de phan anh gia tri moi cua o input ngay lap tuc.
@@ -242,133 +243,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.tr(errorKey ?? 'location_fetched'),
-        ),
-      ),
+      SnackBar(content: Text(context.tr(errorKey ?? 'location_fetched'))),
     );
   }
-
-  // Chuyển tọa độ GPS thành địa chỉ chữ chi tiết (Reverse Geocoding).
-// Thử lần lượt 2 dịch vụ miễn phí, không cần API key:
-//   1. OpenStreetMap Nominatim (ưu tiên, cấu trúc địa chỉ theo cấp hành chính VN).
-//   2. BigDataCloud reverse-geocode-client (dự phòng khi Nominatim lỗi/mất mạng).
-// Trả null nếu cả 2 đều thất bại - khi đó chỉ lưu tọa độ, người dùng tự nhập tay.
-Future<String?> _reverseGeocode(double lat, double lng) async {
-  final nominatim = await _nominatimReverse(lat, lng);
-  if (nominatim != null && nominatim.isNotEmpty) return nominatim;
-  return _bigDataCloudReverse(lat, lng);
-}
-
-// Reverse geocoding bằng OpenStreetMap Nominatim.
-// Trả về địa chỉ dạng: "Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố".
-Future<String?> _nominatimReverse(double lat, double lng) async {
-  try {
-    final uri = Uri.parse(
-      'https://nominatim.openstreetmap.org/reverse',
-    ).replace(
-      queryParameters: {
-        'lat': lat.toStringAsFixed(6),
-        'lon': lng.toStringAsFixed(6),
-        'format': 'jsonv2',
-        'accept-language': 'vi',
-      },
-    );
-    final response = await http
-        .get(uri, headers: {'User-Agent': 'BusGo/1.0'})
-        .timeout(const Duration(seconds: 8));
-    if (response.statusCode != 200) return null;
-    final data = jsonDecode(utf8.decode(response.bodyBytes));
-    if (data is! Map<String, dynamic>) return null;
-    return _formatNominatim(data);
-  } catch (_) {
-    // Lỗi mạng: chuyển sang dịch vụ dự phòng ở bước sau.
-    return null;
-  }
-}
-
-// Ráp địa chỉ từ phần "address" do Nominatim trả về, theo thứ tự
-// đường -> phường/xã -> quận/huyện -> tỉnh/thành -> quốc gia.
-String? _formatNominatim(Map<String, dynamic> data) {
-  final fallback = (data['display_name'] as String?)?.trim();
-  final address = data['address'];
-  if (address is! Map || address.isEmpty) return fallback;
-
-  String? pick(List<String> keys) {
-    for (final key in keys) {
-      final v = address[key];
-      if (v != null && v.toString().trim().isNotEmpty) {
-        return v.toString().trim();
-      }
-    }
-    return null;
-  }
-
-  final streetNumber = pick(['house_number']);
-  final street = pick(['road', 'pedestrian', 'footway', 'residential']);
-  final streetPart = street == null
-      ? null
-      : (streetNumber == null ? street : '$street $streetNumber');
-  final ward = pick([
-    'quarter',
-    'neighbourhood',
-    'suburb',
-    'city_district',
-    'borough',
-    'hamlet',
-    'isolated_dwelling',
-    'village',
-  ]);
-  final district = pick(['county', 'district', 'municipality']);
-  final province = pick(['state', 'state_district', 'region']);
-  final country = pick(['country']);
-
-  final parts = <String?>[streetPart, ward, district, province, country]
-      .whereType<String>()
-      .where((p) => p.isNotEmpty)
-      .toList();
-  final joined = parts.join(', ');
-  // Dự phòng: nếu không ráp được thì dùng chuỗi đầy đủ của Nominatim.
-  return joined.isNotEmpty ? joined : fallback;
-}
-
-// Reverse geocoding dự phòng bằng BigDataCloud (miễn phí, không cần API key).
-Future<String?> _bigDataCloudReverse(double lat, double lng) async {
-  try {
-    final uri = Uri.parse(
-      'https://api.bigdatacloud.net/data/reverse-geocode-client',
-    ).replace(
-      queryParameters: {
-        'latitude': lat.toStringAsFixed(6),
-        'longitude': lng.toStringAsFixed(6),
-        'localityLanguage': 'vi',
-      },
-    );
-    final response = await http
-        .get(uri)
-        .timeout(const Duration(seconds: 8));
-    if (response.statusCode != 200) return null;
-    final data = jsonDecode(utf8.decode(response.bodyBytes));
-    if (data is! Map<String, dynamic>) return null;
-
-    final parts = <String?>[
-      data['locality'],
-      data['city'],
-      data['principalSubdivision'],
-      data['countryName'],
-    ]
-        .whereType<String>()
-        .map((p) => p.trim())
-        .where((p) => p.isNotEmpty)
-        .toList();
-    final joined = parts.join(', ');
-    return joined.isNotEmpty ? joined : null;
-  } catch (_) {
-    // Lỗi mạng: trả null, _fetchCurrentLocation sẽ dùng tọa độ làm dự phòng.
-    return null;
-  }
-}
 
   // ------------------------- Dia chi -------------------------
 
@@ -426,8 +303,9 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
     for (int i = 0; i < _addressCtrls.length; i++) {
       if (_addressCtrls[i].text.trim().isNotEmpty) nonEmptyRows.add(i);
     }
-    final List<String> addresses =
-        nonEmptyRows.map((i) => _addressCtrls[i].text.trim()).toList();
+    final List<String> addresses = nonEmptyRows
+        .map((i) => _addressCtrls[i].text.trim())
+        .toList();
     final int defaultFiltered = nonEmptyRows.indexOf(_defaultAddressIndex);
     final int defaultIndex = addresses.isEmpty
         ? 0
@@ -590,9 +468,7 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
                       // Chặn gõ chữ: chỉ cho phép nhập số (0-9).
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: _validatePhone,
                       decoration: InputDecoration(
                         labelText: context.tr('field_phone'),
@@ -621,7 +497,9 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
                                 : Icons.visibility_outlined,
                           ),
                           onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                         ),
                       ),
@@ -653,7 +531,7 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
             // Gộp "vị trí" + "địa chỉ" thành MỘT mục địa chỉ hoàn chỉnh:
             //  - "Lấy vị trí hiện tại" lấy tọa độ GPS và tự điền địa chỉ.
             //  - Các ô bên dưới để người dùng tự nhập / sửa địa chỉ thủ công.
-            _SectionTitle(context.tr('addresses')),
+            SectionTitle(context.tr('addresses')),
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               child: Column(
@@ -783,32 +661,6 @@ Future<String?> _bigDataCloudReverse(double lat, double lng) async {
   }
 
   Widget _divider(BuildContext context) {
-    return Divider(
-      height: 1,
-      indent: 52,
-      color: context.colors.outlineVariant,
-    );
-  }
-}
-
-// Tieu de nho cua mot phan tren man hinh.
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: context.colors.onSurface,
-        ),
-      ),
-    );
+    return Divider(height: 1, indent: 52, color: context.colors.outlineVariant);
   }
 }

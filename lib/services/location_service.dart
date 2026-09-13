@@ -70,7 +70,8 @@ class LocationService {
         }
         if (requested == LocationPermission.deniedForever) {
           return const LocationResult(
-            error: 'Quyền vị trí bị từ chối vĩnh viễn, hãy mở Cài đặt để cấp lại',
+            error:
+                'Quyền vị trí bị từ chối vĩnh viễn, hãy mở Cài đặt để cấp lại',
           );
         }
       } else if (permission == LocationPermission.deniedForever) {
@@ -134,7 +135,8 @@ class LocationService {
     // Công thức Haversine:
     //   a = sin²(Δlat/2) + cos(lat1)·cos(lat2)·sin²(Δlng/2)
     //   c = 2·atan2(√a, √(1−a)) ; distance = R·c
-    final double h = math.pow(math.sin(dLat / 2), 2) +
+    final double h =
+        math.pow(math.sin(dLat / 2), 2) +
         math.cos(lat1) * math.cos(lat2) * math.pow(math.sin(dLng / 2), 2);
     final double c = 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
     return earthRadiusKm * c;

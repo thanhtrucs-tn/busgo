@@ -60,8 +60,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -99,8 +100,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _load)
-              : _buildBody(context, route),
+          ? ErrorState(message: _error!, onRetry: _load)
+          : _buildBody(context, route),
     );
   }
 
@@ -161,7 +162,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   // Phần đầu màn hình: số tuyến trong ô trắng + tên tuyến.
   Widget _buildHeader(BuildContext context, BusRoute route) {
     final colors = context.colors;
-    final color = _parseColor(route.color) ?? colors.primary;
+    final color = parseHexColor(route.color) ?? colors.primary;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -236,9 +237,10 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         Icon(Icons.schedule, color: colors.onPrimary, size: 14),
                         const SizedBox(width: 5),
                         Text(
-                          context.tr('service_hours', params: {
-                            'time': route.operatingTime,
-                          }),
+                          context.tr(
+                            'service_hours',
+                            params: {'time': route.operatingTime},
+                          ),
                           style: TextStyle(
                             color: colors.onPrimary,
                             fontSize: 12,
@@ -284,9 +286,10 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
             _InfoTile(
               icon: Icons.layers_outlined,
               label: context.tr('num_stops'),
-              value: context.tr('stops_count', params: {
-                'count': '${route.displayStopCount}',
-              }),
+              value: context.tr(
+                'stops_count',
+                params: {'count': '${route.displayStopCount}'},
+              ),
             ),
             if (route.fare != null)
               _InfoTile(
@@ -298,9 +301,10 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
               _InfoTile(
                 icon: Icons.repeat,
                 label: context.tr('frequency'),
-                value: context.tr('minutes_value', params: {
-                  'count': '${route.frequencyMinutes}',
-                }),
+                value: context.tr(
+                  'minutes_value',
+                  params: {'count': '${route.frequencyMinutes}'},
+                ),
               ),
           ],
         ),
@@ -355,8 +359,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     final Color circleColor = isFirst
         ? colors.primary
         : (isLast ? colors.secondary : colors.primaryContainer);
-    final Color circleTextColor =
-        (isFirst || isLast) ? colors.onPrimary : colors.onPrimaryContainer;
+    final Color circleTextColor = (isFirst || isLast)
+        ? colors.onPrimary
+        : colors.onPrimaryContainer;
 
     return IntrinsicHeight(
       child: Row(
@@ -466,8 +471,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 44,
           height: 44,
@@ -475,8 +479,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
             color: colors.primary,
             borderRadius: BorderRadius.circular(14),
           ),
-          child:
-              Icon(Icons.directions_bus, color: colors.onPrimary, size: 24),
+          child: Icon(Icons.directions_bus, color: colors.onPrimary, size: 24),
         ),
         title: Text(
           bus.busNumber,
@@ -507,15 +510,6 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
         ),
       ),
     );
-  }
-
-  // Đổi mã màu "#RRGGBB" từ backend thành Color (null nếu không hợp lệ).
-  Color? _parseColor(String? value) {
-    if (value == null) return null;
-    final hex = value.replaceFirst('#', '');
-    if (hex.length != 6) return null;
-    final parsed = int.tryParse(hex, radix: 16);
-    return parsed == null ? null : Color(0xFF000000 | parsed);
   }
 }
 

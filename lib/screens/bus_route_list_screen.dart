@@ -82,8 +82,8 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _loadRoutes)
-              : _buildBody(),
+          ? ErrorState(message: _error!, onRetry: _loadRoutes)
+          : _buildBody(),
     );
   }
 
@@ -132,9 +132,10 @@ class _BusRouteListScreenState extends State<BusRouteListScreen> {
                           return Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                             child: Text(
-                              context.tr('routes_active', params: {
-                                'count': '${routes.length}',
-                              }),
+                              context.tr(
+                                'routes_active',
+                                params: {'count': '${routes.length}'},
+                              ),
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,

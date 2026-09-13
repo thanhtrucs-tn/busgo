@@ -2,7 +2,8 @@
 // MÀN HÌNH BẢN ĐỒ BusGo.
 //
 // Chức năng (Phase 4):
-//  - Nền bản đồ OpenStreetMap (cấu hình ở config/tile_config.dart) + attribution.
+//  - Nền bản đồ Esri World Street Map (cấu hình ở config/tile_config.dart)
+//    + attribution tương ứng với nhà cung cấp tile.
 //  - Vị trí hiện tại của người dùng (GPS) + nút quay về vị trí.
 //  - Danh sách tuyến lấy từ API, chọn tuyến để vẽ polyline (route_points).
 //  - Marker các trạm của tuyến, chuyển chiều đi / chiều về.
@@ -13,6 +14,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -131,8 +133,9 @@ class _MapScreenState extends State<MapScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -179,11 +182,13 @@ class _MapScreenState extends State<MapScreen> {
     final id = int.tryParse(routeId);
     if (id == null) return;
 
-    _locationSub =
-        SocketService.instance.locationUpdates.listen(_onBusLocation);
+    _locationSub = SocketService.instance.locationUpdates.listen(
+      _onBusLocation,
+    );
     _statusSub = SocketService.instance.statusUpdates.listen(_onBusStatus);
-    _connectionSub ??=
-        SocketService.instance.connectionUpdates.listen((connected) {
+    _connectionSub ??= SocketService.instance.connectionUpdates.listen((
+      connected,
+    ) {
       if (mounted) setState(() => _socketConnected = connected);
     });
 
@@ -215,15 +220,15 @@ class _MapScreenState extends State<MapScreen> {
     final existing = _buses[location.busId];
     if (!mounted) return;
     setState(() {
-      _buses[location.busId] =
-          (existing ?? _busFromLocation(location)).copyWith(
-        busNumber: location.busCode.isNotEmpty ? location.busCode : null,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        speed: location.speed,
-        heading: location.heading,
-        updatedAt: location.updatedAt,
-      );
+      _buses[location.busId] = (existing ?? _busFromLocation(location))
+          .copyWith(
+            busNumber: location.busCode.isNotEmpty ? location.busCode : null,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            speed: location.speed,
+            heading: location.heading,
+            updatedAt: location.updatedAt,
+          );
     });
   }
 
@@ -243,8 +248,9 @@ class _MapScreenState extends State<MapScreen> {
   Bus _busFromLocation(BusLocation location) {
     return Bus(
       id: location.busId,
-      busNumber:
-          location.busCode.isNotEmpty ? location.busCode : location.busId,
+      busNumber: location.busCode.isNotEmpty
+          ? location.busCode
+          : location.busId,
       routeId: location.routeId,
       latitude: location.latitude,
       longitude: location.longitude,
@@ -312,8 +318,7 @@ class _MapScreenState extends State<MapScreen> {
 
     final points = <LatLng>[
       for (final p in _routePath) LatLng(p.latitude, p.longitude),
-      for (final rs in _routeStops)
-        LatLng(rs.stop.latitude, rs.stop.longitude),
+      for (final rs in _routeStops) LatLng(rs.stop.latitude, rs.stop.longitude),
     ];
     if (points.isEmpty) return;
 
@@ -335,10 +340,7 @@ class _MapScreenState extends State<MapScreen> {
 
     _mapController.fitCamera(
       CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(minLat, minLng),
-          LatLng(maxLat, maxLng),
-        ),
+        bounds: LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng)),
         padding: const EdgeInsets.all(60),
       ),
     );
@@ -361,10 +363,7 @@ class _MapScreenState extends State<MapScreen> {
 
     _mapController.fitCamera(
       CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(minLat, minLng),
-          LatLng(maxLat, maxLng),
-        ),
+        bounds: LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng)),
         padding: const EdgeInsets.all(60),
       ),
     );
@@ -530,15 +529,16 @@ class _MapScreenState extends State<MapScreen> {
     // Khoảng cách từ người dùng đến trạm (nếu đã biết vị trí).
     int? distanceMeters;
     if (_currentLocation != null) {
-      distanceMeters = (LocationService.distanceKm(
-                _currentLocation!,
-                UserLocation(
-                  latitude: stop.latitude,
-                  longitude: stop.longitude,
-                ),
-              ) *
-              1000)
-          .round();
+      distanceMeters =
+          (LocationService.distanceKm(
+                    _currentLocation!,
+                    UserLocation(
+                      latitude: stop.latitude,
+                      longitude: stop.longitude,
+                    ),
+                  ) *
+                  1000)
+              .round();
     }
 
     showModalBottomSheet<void>(
@@ -547,18 +547,31 @@ class _MapScreenState extends State<MapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _StopInfoSheet(
-        stop: stop,
-        distanceMeters: distanceMeters,
-      ),
+      builder: (_) =>
+          _StopInfoSheet(stop: stop, distanceMeters: distanceMeters),
     );
   }
 
   // Thông báo nhanh ở đáy màn hình.
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // Log lỗi tải tile (chỉ ở debug, không ghi log rườm rà trong bản release).
+  // Giúp chẩn đoán URL sai / DNS / 403 / 404 ngay trên console.
+  void _onTileError(TileImage tile, Object error, StackTrace? stackTrace) {
+    if (!kDebugMode) return;
+    final c = tile.coordinates;
+    final url = TileConfig.current.urlTemplate
+        .replaceAll('{z}', '${c.z}')
+        .replaceAll('{x}', '${c.x}')
+        .replaceAll('{y}', '${c.y}');
+    debugPrint(
+      '[TileLayer] tải tile thất bại: url=$url '
+      '(z=${c.z}, x=${c.x}, y=${c.y}), error=$error',
     );
   }
 
@@ -590,11 +603,7 @@ class _MapScreenState extends State<MapScreen> {
             height: 34,
             child: GestureDetector(
               onTap: () => _showStopInfo(stop),
-              child: Icon(
-                Icons.location_pin,
-                color: colors.error,
-                size: 30,
-              ),
+              child: Icon(Icons.location_pin, color: colors.error, size: 30),
             ),
           ),
       ];
@@ -803,7 +812,7 @@ class _MapScreenState extends State<MapScreen> {
   // Polyline lộ trình của tuyến đang chọn.
   List<Polyline> _buildPolylines() {
     if (_routePath.length < 2) return [];
-    final color = _parseColor(_selectedRoute?.color) ?? context.colors.primary;
+    final color = parseHexColor(_selectedRoute?.color) ?? context.colors.primary;
     return [
       Polyline(
         points: [for (final p in _routePath) LatLng(p.latitude, p.longitude)],
@@ -830,6 +839,8 @@ class _MapScreenState extends State<MapScreen> {
               TileLayer(
                 urlTemplate: TileConfig.current.urlTemplate,
                 userAgentPackageName: TileConfig.current.userAgentPackageName,
+                maxZoom: 19,
+                errorTileCallback: _onTileError,
               ),
               // Attribution đặt ở góc trên bên phải để không bị bottom sheet che.
               SimpleAttributionWidget(
@@ -903,8 +914,9 @@ class _MapScreenState extends State<MapScreen> {
                           hintText: context.tr('map_search_hint'),
                           prefixIcon: const Icon(Icons.search),
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 4),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                          ),
                           suffixIcon: _query.isEmpty
                               ? null
                               : IconButton(
@@ -928,8 +940,10 @@ class _MapScreenState extends State<MapScreen> {
               left: 12,
               right: 12,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: context.colors.error.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(10),
@@ -988,9 +1002,7 @@ class _MapScreenState extends State<MapScreen> {
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
           child: _selectedRoute == null
@@ -1024,11 +1036,11 @@ class _MapScreenState extends State<MapScreen> {
             ),
             const Spacer(),
             Text(
-              context.tr('routes_active', params: {'count': '${routes.length}'}),
-              style: TextStyle(
-                fontSize: 12,
-                color: colors.onSurfaceVariant,
+              context.tr(
+                'routes_active',
+                params: {'count': '${routes.length}'},
               ),
+              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
           ],
         ),
@@ -1046,10 +1058,8 @@ class _MapScreenState extends State<MapScreen> {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: routes.length,
-              separatorBuilder: (_, _) => Divider(
-                height: 1,
-                color: colors.outlineVariant,
-              ),
+              separatorBuilder: (_, _) =>
+                  Divider(height: 1, color: colors.outlineVariant),
               itemBuilder: (context, index) {
                 final route = routes[index];
                 return ListTile(
@@ -1065,9 +1075,10 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    context.tr('stops_count', params: {
-                      'count': '${route.displayStopCount}',
-                    }),
+                    context.tr(
+                      'stops_count',
+                      params: {'count': '${route.displayStopCount}'},
+                    ),
                     style: const TextStyle(fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right),
@@ -1083,7 +1094,7 @@ class _MapScreenState extends State<MapScreen> {
   // Thông tin tuyến đang chọn + chuyển chiều + danh sách trạm.
   Widget _buildRouteInfoPanel(BusRoute route) {
     final colors = context.colors;
-    final color = _parseColor(route.color) ?? colors.primary;
+    final color = parseHexColor(route.color) ?? colors.primary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1135,10 +1146,7 @@ class _MapScreenState extends State<MapScreen> {
           runSpacing: 4,
           children: [
             if (route.operatingTime.isNotEmpty)
-              _Chip(
-                icon: Icons.schedule,
-                text: route.operatingTime,
-              ),
+              _Chip(icon: Icons.schedule, text: route.operatingTime),
             if (route.fare != null)
               _Chip(
                 icon: Icons.payments_outlined,
@@ -1147,9 +1155,10 @@ class _MapScreenState extends State<MapScreen> {
               ),
             _Chip(
               icon: Icons.directions_bus,
-              text: context.tr('active_buses_count', params: {
-                'count': '${_buses.length}',
-              }),
+              text: context.tr(
+                'active_buses_count',
+                params: {'count': '${_buses.length}'},
+              ),
             ),
           ],
         ),
@@ -1195,13 +1204,11 @@ class _MapScreenState extends State<MapScreen> {
               )
             else
               Text(
-                context.tr('stops_count', params: {
-                  'count': '${_routeStops.length}',
-                }),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colors.onSurfaceVariant,
+                context.tr(
+                  'stops_count',
+                  params: {'count': '${_routeStops.length}'},
                 ),
+                style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
               ),
           ],
         ),
@@ -1269,15 +1276,6 @@ class _MapScreenState extends State<MapScreen> {
         );
       },
     );
-  }
-
-  // Đổi mã màu "#RRGGBB" từ backend thành Color.
-  Color? _parseColor(String? value) {
-    if (value == null) return null;
-    final hex = value.replaceFirst('#', '');
-    if (hex.length != 6) return null;
-    final parsed = int.tryParse(hex, radix: 16);
-    return parsed == null ? null : Color(0xFF000000 | parsed);
   }
 }
 
@@ -1391,8 +1389,7 @@ class _StopInfoSheetState extends State<_StopInfoSheet> {
   @override
   void initState() {
     super.initState();
-    _arrivalsFuture =
-        TransitService.instance.fetchStopArrivals(widget.stop.id);
+    _arrivalsFuture = TransitService.instance.fetchStopArrivals(widget.stop.id);
   }
 
   @override
@@ -1446,9 +1443,10 @@ class _StopInfoSheetState extends State<_StopInfoSheet> {
                 Icon(Icons.directions_bus, size: 15, color: colors.primary),
                 const SizedBox(width: 5),
                 Text(
-                  context.tr('routes_passing', params: {
-                    'count': '${stop.routeCount}',
-                  }),
+                  context.tr(
+                    'routes_passing',
+                    params: {'count': '${stop.routeCount}'},
+                  ),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1457,16 +1455,13 @@ class _StopInfoSheetState extends State<_StopInfoSheet> {
                 ),
                 if (widget.distanceMeters != null) ...[
                   const SizedBox(width: 14),
-                  Icon(
-                    Icons.near_me,
-                    size: 14,
-                    color: colors.onSurfaceVariant,
-                  ),
+                  Icon(Icons.near_me, size: 14, color: colors.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
-                    context.tr('distance_from_you', params: {
-                      'distance': '${widget.distanceMeters} m',
-                    }),
+                    context.tr(
+                      'distance_from_you',
+                      params: {'distance': '${widget.distanceMeters} m'},
+                    ),
                     style: TextStyle(
                       fontSize: 12.5,
                       color: colors.onSurfaceVariant,
@@ -1540,9 +1535,12 @@ class _StopInfoSheetState extends State<_StopInfoSheet> {
                               ),
                             ),
                             Text(
-                              context.tr('arrival_eta', params: {
-                                'minutes': '${arrival.estimatedMinutes}',
-                              }),
+                              context.tr(
+                                'arrival_eta',
+                                params: {
+                                  'minutes': '${arrival.estimatedMinutes}',
+                                },
+                              ),
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,

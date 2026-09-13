@@ -43,12 +43,3 @@ export function errorHandler(err, req, res, next) {
   console.error('[Lỗi máy chủ]', err);
   return failure(res, 'Đã xảy ra lỗi máy chủ, vui lòng thử lại sau', 500);
 }
-
-// Chuyển đổi chuỗi lỗi từ cơ sở dữ liệu sang thông điệp thân thiện.
-// Ví dụ: lỗi trùng khóa duy nhất khi đăng ký tài khoản trùng tên.
-export function dbErrorMessage(err) {
-  if (err && err.code === 'ER_DUP_ENTRY') {
-    return 'Tên đăng nhập đã tồn tại, vui lòng chọn tên khác';
-  }
-  return 'Lỗi cơ sở dữ liệu, vui lòng thử lại sau';
-}

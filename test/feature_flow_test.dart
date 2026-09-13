@@ -13,7 +13,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:busgo/data/sample_data.dart';
 import 'package:busgo/l10n/app_localizations.dart';
 import 'package:busgo/models/bus.dart';
 import 'package:busgo/models/bus_route.dart';
@@ -25,10 +24,13 @@ import 'package:busgo/models/stop_arrival.dart';
 import 'package:busgo/screens/bus_tracking_screen.dart';
 import 'package:busgo/screens/home_screen.dart';
 import 'package:busgo/screens/map_screen.dart';
+import 'package:busgo/screens/stop_detail_screen.dart';
 import 'package:busgo/services/favorite_service.dart';
 import 'package:busgo/services/socket_service.dart';
 import 'package:busgo/services/transit_service.dart';
 import 'package:busgo/theme/app_theme.dart';
+
+import 'fixtures/sample_data.dart';
 
 // Bản giả của TransitService: trả về dữ liệu mẫu thay vì gọi API,
 // để test các màn hình mà không cần backend.
@@ -51,11 +53,7 @@ class _FakeTransitService extends TransitService {
     final route = sampleRoutes.firstWhere((r) => r.id == routeId);
     return [
       for (int i = 0; i < route.stops.length; i++)
-        RouteStop(
-          stop: route.stops[i],
-          direction: direction,
-          stopOrder: i + 1,
-        ),
+        RouteStop(stop: route.stops[i], direction: direction, stopOrder: i + 1),
     ];
   }
 
@@ -63,8 +61,7 @@ class _FakeTransitService extends TransitService {
   Future<List<RoutePoint>> fetchRoutePath(
     String routeId, {
     int direction = 0,
-  }) async =>
-      const [];
+  }) async => const [];
 
   @override
   Future<List<Bus>> fetchRouteBuses(String routeId) async =>
@@ -75,16 +72,14 @@ class _FakeTransitService extends TransitService {
       routesThroughStop(stopId);
 
   @override
-  Future<List<StopArrival>> fetchStopArrivals(String stopId) async =>
-      const [];
+  Future<List<StopArrival>> fetchStopArrivals(String stopId) async => const [];
 
   @override
   Future<List<NearbyStop>> fetchNearbyStops(
     double latitude,
     double longitude, {
     int radius = 2000,
-  }) async =>
-      const [];
+  }) async => const [];
 }
 
 // Bản giả trả về dữ liệu rỗng (kiểm thử trạng thái "không có dữ liệu").
@@ -94,6 +89,23 @@ class _EmptyTransitService extends _FakeTransitService {
 
   @override
   Future<List<BusStop>> fetchStops({String? q}) async => const [];
+}
+
+// Bản giả có sẵn một xe đang đến trạm (kiểm thử phần ETA).
+class _ArrivalsTransitService extends _FakeTransitService {
+  @override
+  Future<List<StopArrival>> fetchStopArrivals(String stopId) async => const [
+        StopArrival(
+          busId: '1',
+          busCode: 'BUS-001',
+          routeCode: '01',
+          routeName: 'Bến Thành - Chợ Lớn',
+          direction: 0,
+          distanceMeters: 1200,
+          estimatedMinutes: 5,
+          isSimulated: true,
+        ),
+      ];
 }
 
 void main() {
@@ -269,10 +281,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FlutterMap), findsOneWidget);
-    expect(
-      find.byIcon(Icons.location_pin),
-      findsNWidgets(sampleStops.length),
-    );
+    expect(find.byIcon(Icons.location_pin), findsNWidgets(sampleStops.length));
 
     // Huy man hinh de ket thuc sach se (khong con ticker).
     await tester.pumpWidget(const SizedBox());
@@ -288,5 +297,40 @@ void main() {
 
     // Huy man hinh de dung listener.
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('8. Chi tiet tram: hien thi xe dang den va thoi gian du kien', (
+    tester,
+  ) async {
+    setTestWindow(tester);
+    TransitService.instance = _ArrivalsTransitService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('vi'),
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        theme: buildAppTheme(),
+        home: const StopDetailScreen(
+          stop: BusStop(
+            id: '1',
+            name: 'Bến Thành',
+            address: 'Trần Hưng Đạo, Quận 1',
+            latitude: 10.7719,
+            longitude: 106.698,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Xe đang đến'), findsOneWidget);
+    expect(find.text('Thời gian dự kiến: khoảng 5 phút'), findsOneWidget);
+    expect(find.text('Dữ liệu mô phỏng'), findsOneWidget);
   });
 }

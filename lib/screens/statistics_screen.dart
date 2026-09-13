@@ -53,8 +53,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       final busesByRoute = <String, int>{};
       for (final route in routes) {
         final buses = await TransitService.instance.fetchRouteBuses(route.id);
-        busesByRoute[route.id] =
-            buses.where((Bus b) => b.isActive).length;
+        busesByRoute[route.id] = buses.where((Bus b) => b.isActive).length;
       }
 
       if (!mounted) return;
@@ -69,8 +68,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -83,8 +83,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _load)
-              : _buildBody(context),
+          ? ErrorState(message: _error!, onRetry: _load)
+          : _buildBody(context),
     );
   }
 
@@ -99,8 +99,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       ..sort((a, b) => b.displayStopCount.compareTo(a.displayStopCount));
 
     // Tổng số xe đang hoạt động.
-    final totalActiveBuses =
-        _busesByRoute.values.fold<int>(0, (sum, count) => sum + count);
+    final totalActiveBuses = _busesByRoute.values.fold<int>(
+      0,
+      (sum, count) => sum + count,
+    );
 
     return ListView(
       padding: const EdgeInsets.all(14),
@@ -332,8 +334,9 @@ class _BarList extends StatelessWidget {
     final colors = context.colors;
     if (items.isEmpty) return const SizedBox.shrink();
 
-    final int maxValue =
-        items.map((item) => item.value).reduce((a, b) => a > b ? a : b);
+    final int maxValue = items
+        .map((item) => item.value)
+        .reduce((a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),

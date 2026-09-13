@@ -146,12 +146,18 @@ class AuthService {
     // Phân biệt lỗi mạng với token hết hạn.
     if (_isNetworkError(result.message)) {
       // Lỗi mạng: KHÔNG xóa token (phiên vẫn còn giá trị).
-      return const AuthResult(success: false, message: 'Không thể kết nối máy chủ');
+      return const AuthResult(
+        success: false,
+        message: 'Không thể kết nối máy chủ',
+      );
     }
 
     // Bước 5: token sai/hết hạn -> xóa token và user đã lưu.
     await TokenStorage.instance.clear();
-    return const AuthResult(success: false, message: 'Phiên đăng nhập đã hết hạn');
+    return const AuthResult(
+      success: false,
+      message: 'Phiên đăng nhập đã hết hạn',
+    );
   }
 
   // ------------------------------------------------------------

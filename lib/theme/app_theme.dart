@@ -131,14 +131,12 @@ ThemeData _buildTheme(ColorScheme scheme, Color scaffoldBg) {
 
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? scheme.onPrimary
-            : null,
+        (states) =>
+            states.contains(WidgetState.selected) ? scheme.onPrimary : null,
       ),
       trackColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? scheme.primary
-            : null,
+        (states) =>
+            states.contains(WidgetState.selected) ? scheme.primary : null,
       ),
     ),
   );
@@ -160,4 +158,13 @@ extension BusGoColors on BuildContext {
 
   /// Mau nen man hinh hien tai (sang/toi).
   Color get scaffoldBg => Theme.of(this).scaffoldBackgroundColor;
+}
+
+/// Đổi mã màu "#RRGGBB" từ backend thành Color (null nếu không hợp lệ).
+Color? parseHexColor(String? value) {
+  if (value == null) return null;
+  final hex = value.replaceFirst('#', '');
+  if (hex.length != 6) return null;
+  final parsed = int.tryParse(hex, radix: 16);
+  return parsed == null ? null : Color(0xFF000000 | parsed);
 }

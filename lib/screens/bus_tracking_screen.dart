@@ -76,8 +76,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       final routes = await TransitService.instance.fetchRoutes();
       final buses = <String, Bus>{};
       for (final route in routes) {
-        final routeBuses =
-            await TransitService.instance.fetchRouteBuses(route.id);
+        final routeBuses = await TransitService.instance.fetchRouteBuses(
+          route.id,
+        );
         for (final bus in routeBuses) {
           buses[bus.id] = bus;
         }
@@ -95,8 +96,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -104,11 +106,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   // Đăng ký nghe sự kiện realtime và tham gia phòng của mọi tuyến.
   void _subscribe() {
-    _locationSub =
-        SocketService.instance.locationUpdates.listen(_onBusLocation);
+    _locationSub = SocketService.instance.locationUpdates.listen(
+      _onBusLocation,
+    );
     _statusSub = SocketService.instance.statusUpdates.listen(_onBusStatus);
-    _connectionSub ??=
-        SocketService.instance.connectionUpdates.listen((connected) {
+    _connectionSub ??= SocketService.instance.connectionUpdates.listen((
+      connected,
+    ) {
       if (mounted) setState(() => _connected = connected);
     });
 
@@ -131,15 +135,15 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     final existing = _buses[location.busId];
     if (!mounted) return;
     setState(() {
-      _buses[location.busId] =
-          (existing ?? _busFromLocation(location)).copyWith(
-        busNumber: location.busCode.isNotEmpty ? location.busCode : null,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        speed: location.speed,
-        heading: location.heading,
-        updatedAt: location.updatedAt,
-      );
+      _buses[location.busId] = (existing ?? _busFromLocation(location))
+          .copyWith(
+            busNumber: location.busCode.isNotEmpty ? location.busCode : null,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            speed: location.speed,
+            heading: location.heading,
+            updatedAt: location.updatedAt,
+          );
     });
   }
 
@@ -154,8 +158,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   Bus _busFromLocation(BusLocation location) {
     return Bus(
       id: location.busId,
-      busNumber:
-          location.busCode.isNotEmpty ? location.busCode : location.busId,
+      busNumber: location.busCode.isNotEmpty
+          ? location.busCode
+          : location.busId,
       routeId: location.routeId,
       latitude: location.latitude,
       longitude: location.longitude,
@@ -194,10 +199,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
     _mapController.fitCamera(
       CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(minLat, minLng),
-          LatLng(maxLat, maxLng),
-        ),
+        bounds: LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng)),
         padding: const EdgeInsets.all(70),
       ),
     );
@@ -292,8 +294,10 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        context.tr('bus_label',
-                            params: {'number': bus.busNumber}),
+                        context.tr(
+                          'bus_label',
+                          params: {'number': bus.busNumber},
+                        ),
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -306,11 +310,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: colors.primary,
-                    ),
+                    Icon(Icons.check_circle, size: 16, color: colors.primary),
                     const SizedBox(width: 6),
                     Text(
                       context.tr('status_active'),
@@ -362,76 +362,75 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _load)
-              : Stack(
+          ? ErrorState(message: _error!, onRetry: _load)
+          : Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: const LatLng(10.7756, 106.6985),
+                    initialZoom: 12,
+                    onMapReady: () {
+                      _mapReady = true;
+                      _fitToBuses();
+                    },
+                  ),
                   children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: const LatLng(10.7756, 106.6985),
-                        initialZoom: 12,
-                        onMapReady: () {
-                          _mapReady = true;
-                          _fitToBuses();
-                        },
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: TileConfig.current.urlTemplate,
-                          userAgentPackageName:
-                              TileConfig.current.userAgentPackageName,
-                        ),
-                        MarkerLayer(markers: _buildBusMarkers()),
-                        SimpleAttributionWidget(
-                          source: Text(TileConfig.current.attribution),
-                        ),
-                      ],
+                    TileLayer(
+                      urlTemplate: TileConfig.current.urlTemplate,
+                      userAgentPackageName:
+                          TileConfig.current.userAgentPackageName,
                     ),
-
-                    // Banner mô tả nguồn dữ liệu / trạng thái kết nối.
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (_connected
-                                  ? context.colors.primary
-                                  : context.colors.error)
-                              .withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _connected
-                                  ? Icons.info_outline
-                                  : Icons.wifi_off,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _connected
-                                    ? context.tr('tracking_banner')
-                                    : context.tr('socket_disconnected'),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    MarkerLayer(markers: _buildBusMarkers()),
+                    SimpleAttributionWidget(
+                      source: Text(TileConfig.current.attribution),
                     ),
                   ],
                 ),
+
+                // Banner mô tả nguồn dữ liệu / trạng thái kết nối.
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          (_connected
+                                  ? context.colors.primary
+                                  : context.colors.error)
+                              .withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _connected ? Icons.info_outline : Icons.wifi_off,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _connected
+                                ? context.tr('tracking_banner')
+                                : context.tr('socket_disconnected'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -14,6 +14,7 @@ import '../services/profile_service.dart';
 import '../services/session_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/section_header.dart';
 import 'auth/login_screen.dart';
 import 'profile_screen.dart';
 
@@ -48,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.only(bottom: 28),
             children: [
               // ============================ TÀI KHOẢN ============================
-              _SectionHeader(label: context.tr('group_account')),
+              SectionHeader(label: context.tr('group_account')),
               _group(context, [
                 _AccountCard(
                   name: profile.name,
@@ -59,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
 
               // ============================ TÙY CHỈNH ============================
-              _SectionHeader(label: context.tr('group_prefs')),
+              SectionHeader(label: context.tr('group_prefs')),
               _group(context, [
                 SwitchListTile(
                   secondary: const Icon(Icons.dark_mode_outlined),
@@ -85,7 +86,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'vi', child: Text('Tiếng Việt')),
+                        DropdownMenuItem(
+                          value: 'vi',
+                          child: Text('Tiếng Việt'),
+                        ),
                         DropdownMenuItem(value: 'en', child: Text('English')),
                       ],
                       onChanged: (v) {
@@ -97,7 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
 
               // ============================ THÔNG BÁO ============================
-              _SectionHeader(label: context.tr('group_notifs')),
+              SectionHeader(label: context.tr('group_notifs')),
               _group(context, [
                 SwitchListTile(
                   secondary: const Icon(Icons.directions_bus_outlined),
@@ -116,7 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
 
               // ========================== BỘ NHỚ & BẢN ĐỒ ==========================
-              _SectionHeader(label: context.tr('group_storage')),
+              SectionHeader(label: context.tr('group_storage')),
               _group(context, [
                 ListTile(
                   leading: const Icon(Icons.cleaning_services_outlined),
@@ -147,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
 
               // ============================ HỆ THỐNG ============================
-              _SectionHeader(label: context.tr('group_system')),
+              SectionHeader(label: context.tr('group_system')),
               _group(context, [
                 ListTile(
                   leading: const Icon(Icons.info_outline),
@@ -207,7 +211,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           for (int i = 0; i < tiles.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, indent: 56, color: context.colors.outlineVariant),
+              Divider(
+                height: 1,
+                indent: 56,
+                color: context.colors.outlineVariant,
+              ),
             tiles[i],
           ],
         ],
@@ -252,9 +260,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Tai ban do ngoai tuyen (mo phong).
   void _onDownloadOfflineMap() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('downloading_map'))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr('downloading_map'))));
   }
 
   // Hien thong tin ve ung dung.
@@ -268,9 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         size: 40,
         color: context.colors.primary,
       ),
-      children: [
-        Text(context.tr('about_content')),
-      ],
+      children: [Text(context.tr('about_content'))],
     );
   }
 
@@ -321,36 +327,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await SessionService.instance.logout();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('logged_out'))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr('logged_out'))));
 
     // Quay ve man hinh dang nhap (bo toan bo stack hien tai).
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
-    );
-  }
-}
-
-// Tieu de mot nhom cai dat.
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: context.colors.primary,
-        ),
-      ),
     );
   }
 }
@@ -380,8 +364,7 @@ class _AccountCard extends StatelessWidget {
       leading: CircleAvatar(
         radius: 24,
         backgroundColor: colors.primaryContainer,
-        backgroundImage:
-            avatarBytes != null ? MemoryImage(avatarBytes!) : null,
+        backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
         child: avatarBytes == null
             ? Text(
                 initial,

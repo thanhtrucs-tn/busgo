@@ -43,10 +43,10 @@ class UserAccount {
 
   // Chuyển đối tượng UserAccount thành JSON (lưu vào secure storage).
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'name': name,
-        'email': email,
-        'role': role,
-      };
+    'id': id,
+    'username': username,
+    'name': name,
+    'email': email,
+    'role': role,
+  };
 }

@@ -3,7 +3,7 @@
 //
 // Người dùng nhập TÊN ĐĂNG NHẬP và MẬT KHẨU để tạo tài khoản mới.
 // Dữ liệu được gửi lên API /api/auth/register (backend Node.js + MySQL)
-// rồi lưu vào bảng users của database TEST_123.
+// rồi lưu vào bảng users của database BusGo.
 //
 // Luồng hoạt động:
 //  Đăng ký thành công -> quay về màn hình đăng nhập
@@ -67,7 +67,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Gọi API đăng ký tài khoản trên máy chủ.
     // Backend: kiểm tra trùng tên/email, băm mật khẩu bcrypt,
-    // lưu database TEST_123, tạo JWT (đăng ký xong là đã có token).
+    // lưu database BusGo, tạo JWT (đăng ký xong là đã có token).
     final result = await AuthService.instance.register(
       username: username,
       password: password,
@@ -316,9 +316,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 18),
                     Row(
                       children: [
-                        Expanded(
-                          child: Divider(color: colors.outlineVariant),
-                        ),
+                        Expanded(child: Divider(color: colors.outlineVariant)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
@@ -331,9 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Divider(color: colors.outlineVariant),
-                        ),
+                        Expanded(child: Divider(color: colors.outlineVariant)),
                       ],
                     ),
                     const SizedBox(height: 14),

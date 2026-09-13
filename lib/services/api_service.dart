@@ -49,32 +49,25 @@ class ApiService {
     Map<String, String>? query,
     bool protected = false,
   }) async {
-    return _send(
-      method: 'GET',
-      path: path,
-      query: query,
-      protected: protected,
-    );
+    return _send(method: 'GET', path: path, query: query, protected: protected);
   }
 
   // Gọi POST, ví dụ: ApiService.instance.post('/auth/login', body: {...});
-  Future<ApiResult> post(String path, {Map<String, dynamic>? body, bool protected = false}) async {
-    return _send(
-      method: 'POST',
-      path: path,
-      body: body,
-      protected: protected,
-    );
+  Future<ApiResult> post(
+    String path, {
+    Map<String, dynamic>? body,
+    bool protected = false,
+  }) async {
+    return _send(method: 'POST', path: path, body: body, protected: protected);
   }
 
   // Gọi PUT, ví dụ: ApiService.instance.put('/profile/me', body: {...}, protected: true);
-  Future<ApiResult> put(String path, {Map<String, dynamic>? body, bool protected = false}) async {
-    return _send(
-      method: 'PUT',
-      path: path,
-      body: body,
-      protected: protected,
-    );
+  Future<ApiResult> put(
+    String path, {
+    Map<String, dynamic>? body,
+    bool protected = false,
+  }) async {
+    return _send(method: 'PUT', path: path, body: body, protected: protected);
   }
 
   // Triển khai chung cho mọi request (tránh lặp code).
@@ -125,7 +118,8 @@ class ApiService {
 
       return ApiResult(
         success: map['success'] as bool? ?? false,
-        message: map['message'] as String? ?? _messageForStatus(response.statusCode),
+        message:
+            map['message'] as String? ?? _messageForStatus(response.statusCode),
         data: map,
       );
     } catch (_) {

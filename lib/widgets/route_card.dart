@@ -83,9 +83,10 @@ class RouteCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        context.tr('stops_count', params: {
-                          'count': '${route.displayStopCount}',
-                        }),
+                        context.tr(
+                          'stops_count',
+                          params: {'count': '${route.displayStopCount}'},
+                        ),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -104,8 +105,9 @@ class RouteCard extends StatelessWidget {
                   icon: ListenableBuilder(
                     listenable: FavoriteService.instance,
                     builder: (context, _) {
-                      final bool fav =
-                          FavoriteService.instance.isFavorite(route.id);
+                      final bool fav = FavoriteService.instance.isFavorite(
+                        route.id,
+                      );
                       return Icon(
                         fav ? Icons.favorite : Icons.favorite_border,
                         color: fav ? colors.error : colors.outlineVariant,

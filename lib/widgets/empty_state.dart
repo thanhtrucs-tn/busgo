@@ -8,11 +8,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({
-    super.key,
-    required this.icon,
-    required this.message,
-  });
+  const EmptyState({super.key, required this.icon, required this.message});
 
   final IconData icon;
   final String message;

@@ -1,11 +1,10 @@
 // sample_data.dart
-// Du lieu mau (du lieu gia) dung chung cho cac man hinh.
+// Du lieu mau (fixture) chi dung cho test.
 // Du lieu duoc tao tu cac model: BusRoute, BusStop, Bus.
-// Khong can backend, chi dung de hien thi giao dien.
 
-import '../models/bus.dart';
-import '../models/bus_route.dart';
-import '../models/bus_stop.dart';
+import 'package:busgo/models/bus.dart';
+import 'package:busgo/models/bus_route.dart';
+import 'package:busgo/models/bus_stop.dart';
 
 // Danh sach cac tram xe buyt mau.
 const List<BusStop> sampleStops = [
@@ -77,11 +76,7 @@ final List<BusRoute> sampleRoutes = [
     startPoint: 'Bến Xe Chợ Lớn',
     endPoint: 'Cộng Hòa',
     operatingTime: '05:30 - 20:30',
-    stops: [
-      sampleStops[4],
-      sampleStops[0],
-      sampleStops[3],
-    ],
+    stops: [sampleStops[4], sampleStops[0], sampleStops[3]],
   ),
   BusRoute(
     id: '3',
@@ -90,11 +85,7 @@ final List<BusRoute> sampleRoutes = [
     startPoint: 'Bến Thành',
     endPoint: 'Biên Hòa',
     operatingTime: '04:30 - 19:30',
-    stops: [
-      sampleStops[0],
-      sampleStops[3],
-      sampleStops[2],
-    ],
+    stops: [sampleStops[0], sampleStops[3], sampleStops[2]],
   ),
   BusRoute(
     id: '4',
@@ -103,11 +94,7 @@ final List<BusRoute> sampleRoutes = [
     startPoint: 'Bến Thành',
     endPoint: 'Sân bay Tân Sơn Nhất',
     operatingTime: '05:00 - 22:00',
-    stops: [
-      sampleStops[0],
-      sampleStops[1],
-      sampleStops[5],
-    ],
+    stops: [sampleStops[0], sampleStops[1], sampleStops[5]],
   ),
 ];
 

@@ -56,7 +56,8 @@ class AppLocalizations {
       'routes_passing': '{count} tuyến đi qua',
       // -------------------------- Favorites --------------------------
       'favorites_title': 'Tuyến yêu thích',
-      'favorites_empty': 'Chưa có tuyến yêu thích nào\nBấm trái tim ở danh sách tuyến để thêm',
+      'favorites_empty':
+          'Chưa có tuyến yêu thích nào\nBấm trái tim ở danh sách tuyến để thêm',
       // ------------------------- Route detail -------------------------
       'route_no': 'Tuyến {number}',
       'journey': 'Hành trình',
@@ -111,7 +112,8 @@ class AppLocalizations {
       'nearby_all': 'Tất cả trạm',
       // -------------------------- Tracking --------------------------
       'tracking_title': 'Theo dõi xe buýt',
-      'tracking_banner': 'Dữ liệu mô phỏng: vị trí xe cập nhật theo thời gian thực',
+      'tracking_banner':
+          'Dữ liệu mô phỏng: vị trí xe cập nhật theo thời gian thực',
       'bus_label': 'Xe {number}',
       'status_active': 'Trạng thái: Đang hoạt động',
       'position_label': 'Vị trí:',
@@ -171,8 +173,10 @@ class AppLocalizations {
       'clear_cache_confirm_msg': 'Bạn có chắc muốn xóa bộ nhớ tạm không?',
       'cache_cleared': 'Đã xóa bộ nhớ tạm',
       'downloading_map': 'Đang tải bản đồ ngoại tuyến...',
-      'about_content': 'BusGo - Ứng dụng theo dõi tuyến xe buýt.\n\nPhiên bản 1.0.0',
-      'privacy_content': 'BusGo chỉ sử dụng dữ liệu của bạn để phục vụ theo dõi tuyến xe buýt.\n\nThông tin cá nhân không được chia sẻ cho bên thứ ba.',
+      'about_content':
+          'BusGo - Ứng dụng theo dõi tuyến xe buýt.\n\nPhiên bản 1.0.0',
+      'privacy_content':
+          'BusGo chỉ sử dụng dữ liệu của bạn để phục vụ theo dõi tuyến xe buýt.\n\nThông tin cá nhân không được chia sẻ cho bên thứ ba.',
       'logout_confirm_title': 'Đăng xuất',
       'logout_confirm_msg': 'Bạn có chắc muốn đăng xuất khỏi tài khoản?',
       'logged_out': 'Đã đăng xuất',
@@ -258,7 +262,8 @@ class AppLocalizations {
       'routes_passing': '{count} routes passing',
       // -------------------------- Favorites --------------------------
       'favorites_title': 'Favorite Routes',
-      'favorites_empty': 'No favorite routes yet\nTap the heart in the route list to add',
+      'favorites_empty':
+          'No favorite routes yet\nTap the heart in the route list to add',
       // ------------------------- Route detail -------------------------
       'route_no': 'Route {number}',
       'journey': 'Journey',
@@ -374,7 +379,8 @@ class AppLocalizations {
       'cache_cleared': 'Cache cleared',
       'downloading_map': 'Downloading offline maps...',
       'about_content': 'BusGo - Bus route tracking app.\n\nVersion 1.0.0',
-      'privacy_content': 'BusGo only uses your data to serve bus route tracking.\n\nPersonal information is never shared with third parties.',
+      'privacy_content':
+          'BusGo only uses your data to serve bus route tracking.\n\nPersonal information is never shared with third parties.',
       'logout_confirm_title': 'Log Out',
       'logout_confirm_msg': 'Are you sure you want to log out?',
       'logged_out': 'Logged out',
@@ -438,8 +444,7 @@ class AppLocalizations {
 }
 
 /// Delegate giup MaterialApp nap du lieu dich cho tung ngon ngu.
-class AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const AppLocalizationsDelegate();
 
   @override

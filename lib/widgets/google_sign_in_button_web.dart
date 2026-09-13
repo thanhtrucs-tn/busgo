@@ -63,8 +63,9 @@ class _WebGoogleButtonState extends State<_WebGoogleButton> {
       await _initializeWeb();
 
       // Lắng nghe kết quả đăng nhập từ nút GSI chính thức.
-      _subscription =
-          GoogleSignIn.instance.authenticationEvents.listen((event) {
+      _subscription = GoogleSignIn.instance.authenticationEvents.listen((
+        event,
+      ) {
         if (event is GoogleSignInAuthenticationEventSignIn) {
           final idToken = event.user.authentication.idToken;
           if (idToken != null && idToken.isNotEmpty && mounted) {
@@ -89,9 +90,7 @@ class _WebGoogleButtonState extends State<_WebGoogleButton> {
     if (!_ready) {
       return const SizedBox(
         height: 48,
-        child: Center(
-          child: CircularProgressIndicator(strokeWidth: 2.5),
-        ),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
       );
     }
     // Nút "Sign in with Google" chuẩn do Google vẽ.

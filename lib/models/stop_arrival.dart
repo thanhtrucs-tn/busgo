@@ -29,8 +29,9 @@ class StopArrival {
 
   factory StopArrival.fromJson(Map<String, dynamic> json) {
     final route = json['route'];
-    final routeMap =
-        route is Map<String, dynamic> ? route : const <String, dynamic>{};
+    final routeMap = route is Map<String, dynamic>
+        ? route
+        : const <String, dynamic>{};
     final updated = json['lastUpdatedAt'] as String?;
 
     return StopArrival(

@@ -49,8 +49,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -87,8 +88,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _loadRoutes)
-              : _buildBody(),
+          ? ErrorState(message: _error!, onRetry: _loadRoutes)
+          : _buildBody(),
     );
   }
 

@@ -33,11 +33,11 @@ class AppNotification {
 
   // Phan loai lon: thong bao tuyen xe hoac he thong.
   NotificationCategory get category => switch (kind) {
-        NotificationKind.arrival || NotificationKind.issue =>
-          NotificationCategory.route,
-        NotificationKind.news || NotificationKind.account =>
-          NotificationCategory.system,
-      };
+    NotificationKind.arrival ||
+    NotificationKind.issue => NotificationCategory.route,
+    NotificationKind.news ||
+    NotificationKind.account => NotificationCategory.system,
+  };
 
   // Tao ban sao voi trang thai da doc moi (dung khi danh dau da doc).
   AppNotification copyWith({bool? isRead}) {

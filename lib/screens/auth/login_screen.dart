@@ -339,9 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (GoogleAuthService.instance.isGoogleSignInAvailable) ...[
                     Row(
                       children: [
-                        Expanded(
-                          child: Divider(color: colors.outlineVariant),
-                        ),
+                        Expanded(child: Divider(color: colors.outlineVariant)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
@@ -354,9 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Divider(color: colors.outlineVariant),
-                        ),
+                        Expanded(child: Divider(color: colors.outlineVariant)),
                       ],
                     ),
                     const SizedBox(height: 14),

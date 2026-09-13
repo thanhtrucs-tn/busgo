@@ -6,7 +6,7 @@
 //   - GET  /api/auth/me        : lấy thông tin user hiện tại (cần JWT)
 //
 // Dữ liệu được lưu qua Sequelize (models/User.js) vào bảng users
-// của database TEST_123. Mật khẩu LUÔN được băm bằng bcrypt,
+// của database BusGo. Mật khẩu LUÔN được băm bằng bcrypt,
 // không bao giờ lưu dạng văn bản thô.
 // ------------------------------------------------------------
 
@@ -31,16 +31,10 @@ import { signToken } from '../utils/jwt.util.js';
 // Trả về: { success, message, token, user }
 // ------------------------------------------------------------
 export async function register(req, res) {
+  // Dữ liệu đã được validate.middleware kiểm tra và chuẩn hóa trước đó.
   const { username, password } = req.body;
-  const email = (req.body.email || '').trim() || null;
-  const name = (req.body.name || '').trim() || username;
-
-  // Bước 0: kiểm tra dữ liệu đầu vào (độ dài + định dạng) trước khi
-  // làm việc với database - tránh lưu dữ liệu sai logic vào bảng users.
-  const validationError = validateRegister({ username, password, email, name });
-  if (validationError) {
-    return failure(res, validationError, 400);
-  }
+  const email = req.body.email || null;
+  const name = req.body.name || username;
 
   try {
     // Bước 1: kiểm tra tên đăng nhập đã tồn tại chưa.
@@ -91,20 +85,8 @@ export async function register(req, res) {
 // Trả về: { success, message, token, user }
 // ------------------------------------------------------------
 export async function login(req, res) {
-  const { password } = req.body;
-  // Chấp nhận: identifier (tên HOẶC email), hoặc username, hoặc email.
-  const identifier = req.body.identifier || req.body.username || req.body.email;
-
-  // Bước 0: kiểm tra dữ liệu cơ bản trước khi truy vấn database.
-  if (!identifier) {
-    return failure(res, 'Vui lòng nhập tên đăng nhập hoặc email', 400);
-  }
-  if (!password) {
-    return failure(res, 'Vui lòng nhập mật khẩu', 400);
-  }
-  if (password.length > 64) {
-    return failure(res, 'Mật khẩu tối đa 64 ký tự', 400);
-  }
+  // Dữ liệu đã được validate.middleware kiểm tra và chuẩn hóa trước đó.
+  const { identifier, password } = req.body;
 
   try {
     // Bước 1: tìm tài khoản theo tên đăng nhập HOẶC email.
@@ -270,31 +252,6 @@ function publicUser(user) {
     email: user.email,
     role: user.role,
   };
-}
-
-// Kiểm tra dữ liệu đăng ký hợp lệ trước khi lưu vào database.
-// Trả về null nếu hợp lệ, ngược lại trả thông báo lỗi tiếng Việt.
-function validateRegister({ username, password, email, name }) {
-  if (!username || username.length < 3 || username.length > 32) {
-    return 'Tên đăng nhập phải có từ 3 đến 32 ký tự';
-  }
-  // Tên đăng nhập chỉ gồm chữ cái, số, gạch dưới (không dấu cách/ký tự đặc biệt).
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return 'Tên đăng nhập chỉ gồm chữ cái, số và dấu gạch dưới';
-  }
-  if (!password || password.length < 6 || password.length > 64) {
-    return 'Mật khẩu phải có từ 6 đến 64 ký tự';
-  }
-  if (email) {
-    if (email.length > 48) return 'Email tối đa 48 ký tự';
-    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-      return 'Email không đúng định dạng';
-    }
-  }
-  if (name && name.length > 50) {
-    return 'Tên hiển thị tối đa 50 ký tự';
-  }
-  return null;
 }
 
 // Chuyển lỗi Sequelize thành thông điệp thân thiện.

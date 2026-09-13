@@ -4,7 +4,7 @@
 -- Hướng dẫn chạy:
 --   1. Mở MySQL (Command Line / MySQL Workbench / phpMyAdmin).
 --   2. Chạy toàn bộ nội dung file này (CHO LẦN CÀI MỚI).
---   3. Kiểm tra lại bằng lệnh:  USE TEST_123; DESCRIBE users;
+--   3. Kiểm tra lại bằng lệnh:  USE BusGo; DESCRIBE users;
 --
 -- NẾU ĐÃ CÓ DATABASE CŨ (bảng users cũ chưa có email/name/role):
 --   KHÔNG chạy lại CREATE TABLE (bảng đã tồn tại).
@@ -12,7 +12,7 @@
 --   Dữ liệu cũ KHÔNG bị xóa.
 -- ============================================================
 
--- Tạo cơ sở dữ liệu TEST_123 (nếu chưa tồn tại).
+-- Tạo cơ sở dữ liệu BusGo (nếu chưa tồn tại).
 -- utf8mb4 hỗ trợ đầy đủ tiếng Việt có dấu.
 CREATE DATABASE IF NOT EXISTS BusGo
   CHARACTER SET utf8mb4

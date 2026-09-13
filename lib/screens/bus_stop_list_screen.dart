@@ -49,8 +49,9 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
     } catch (err) {
       if (!mounted) return;
       setState(() {
-        _error =
-            err is TransitException ? err.message : context.tr('load_error');
+        _error = err is TransitException
+            ? err.message
+            : context.tr('load_error');
         _loading = false;
       });
     }
@@ -74,8 +75,8 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorState(message: _error!, onRetry: _loadStops)
-              : _buildBody(),
+          ? ErrorState(message: _error!, onRetry: _loadStops)
+          : _buildBody(),
     );
   }
 
@@ -157,8 +158,7 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       stop.name,
@@ -188,10 +188,12 @@ class _BusStopListScreenState extends State<BusStopListScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          context.tr('routes_passing',
-                                              params: {
-                                                'count': '${stop.routeCount}',
-                                              }),
+                                          context.tr(
+                                            'routes_passing',
+                                            params: {
+                                              'count': '${stop.routeCount}',
+                                            },
+                                          ),
                                           style: TextStyle(
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w600,

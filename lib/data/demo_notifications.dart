@@ -1,4 +1,4 @@
-// sample_notifications.dart
+// demo_notifications.dart
 // Du lieu mau (du lieu gia) cho cac thong bao cua ung dung BusGo.
 // Thoi gian duoc tinh tu luc chay app de thanh "Moi nhat / Hom nay / Cu hon"
 // hien thi dung theo mien thoi gian cua ngay chay thu.
@@ -6,7 +6,7 @@
 import '../models/app_notification.dart';
 
 // Tao danh sach thong bao mau voi thoi gian tuong doi so voi thoi diem hien tai.
-List<AppNotification> buildSampleNotifications() {
+List<AppNotification> buildDemoNotifications() {
   final DateTime now = DateTime.now();
   return [
     AppNotification(
@@ -21,7 +21,8 @@ List<AppNotification> buildSampleNotifications() {
       id: 'n2',
       kind: NotificationKind.issue,
       title: 'Sự cố tuyến 06 - Bến Thành → Biên Hòa',
-      body: 'Tuyến 06 đang tạm dừng hoạt động do sự cố, vui lòng chọn tuyến khác.',
+      body:
+          'Tuyến 06 đang tạm dừng hoạt động do sự cố, vui lòng chọn tuyến khác.',
       time: now.subtract(const Duration(minutes: 40)),
       isRead: false,
     ),
@@ -29,7 +30,8 @@ List<AppNotification> buildSampleNotifications() {
       id: 'n3',
       kind: NotificationKind.news,
       title: 'Cập nhật lịch trình tuyến 01',
-      body: 'Tuyến 01 mở rộng giờ hoạt động: 05:00 - 22:00 để phục vụ người dân.',
+      body:
+          'Tuyến 01 mở rộng giờ hoạt động: 05:00 - 22:00 để phục vụ người dân.',
       time: now.subtract(const Duration(hours: 3)),
       isRead: false,
     ),

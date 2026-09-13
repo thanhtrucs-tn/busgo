@@ -100,8 +100,6 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     // Đã xác định hướng: Trang chủ hoặc màn hình Đăng nhập.
-    return _destination == 'home'
-        ? const HomeScreen()
-        : const LoginScreen();
+    return _destination == 'home' ? const HomeScreen() : const LoginScreen();
   }
 }

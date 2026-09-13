@@ -29,6 +29,17 @@ import { requireJwtSecret } from './utils/jwt.util.js';
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
 dotenv.config({ path: envFile });
 
+// Cảnh báo (không dừng server) nếu thiếu biến DB quan trọng.
+// Chỉ in TÊN biến, tuyệt đối không in giá trị.
+const DB_ENV_NAMES = ['DB_HOST', 'DB_NAME', 'DB_USER'];
+const missingDbEnv = DB_ENV_NAMES.filter((name) => !process.env[name]);
+if (missingDbEnv.length > 0) {
+  console.warn(
+    `[CẢNH BÁO] Thiếu biến môi trường: ${missingDbEnv.join(', ')}. ` +
+      'Đang dùng giá trị mặc định trong config/db.js.',
+  );
+}
+
 // QUAN TRỌNG: khóa ký JWT bắt buộc có trong .env (không hard-code).
 requireJwtSecret();
 
@@ -39,7 +50,9 @@ async function initDatabase() {
     await sequelize.authenticate(); // Kiểm tra kết nối
     await sequelize.sync(); // Tạo bảng nếu chưa tồn tại
     await ensureUsersGoogleColumn(); // Bổ sung cột google_id cho bảng cũ
-    console.log('[OK] Kết nối MySQL thành công, database: BusGo');
+    console.log(
+      `[OK] Kết nối MySQL thành công, database: ${process.env.DB_NAME || 'BusGo'}`,
+    );
   } catch (err) {
     // Không dừng server: người dùng vẫn thấy thông báo lỗi thân thiện ở API.
     console.error('[LỖI] Không kết nối được MySQL:', err.message);
@@ -72,8 +85,9 @@ async function ensureUsersGoogleColumn() {
 // Tạo ứng dụng Express.
 const app = express();
 
-// Cho phép ứng dụng Flutter (web/desktop) gọi API từ nguồn khác.
-app.use(cors());
+// Cho phép ứng dụng Flutter gọi API. CLIENT_URL là nguồn được phép
+// (mặc định '*' cho môi trường phát triển).
+app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
 
 // Tự động chuyển dữ liệu JSON trong request body thành object JS.
 // Tăng giới hạn lên 6MB vì hồ sơ có thể gửi kèm ảnh đại diện dạng base64.

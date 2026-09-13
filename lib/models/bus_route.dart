@@ -2,7 +2,7 @@
 // Model đại diện cho một TUYẾN xe buýt (BusRoute).
 //
 // Model dùng chung cho cả hai nguồn dữ liệu:
-//  - Dữ liệu mẫu nhúng trong app (lib/data/sample_data.dart).
+//  - Dữ liệu mẫu dùng cho test (test/fixtures/sample_data.dart).
 //  - API backend (GET /api/routes) thông qua factory BusRoute.fromJson.
 //
 // Các trường mới (color, startTime, endTime, frequencyMinutes, fare, status,
@@ -57,8 +57,9 @@ class BusRoute {
   factory BusRoute.fromJson(Map<String, dynamic> json) {
     final startTime = json['startTime'] as String?;
     final endTime = json['endTime'] as String?;
-    final operatingTime =
-        (startTime != null && endTime != null) ? '$startTime - $endTime' : '';
+    final operatingTime = (startTime != null && endTime != null)
+        ? '$startTime - $endTime'
+        : '';
 
     return BusRoute(
       id: '${json['id']}',

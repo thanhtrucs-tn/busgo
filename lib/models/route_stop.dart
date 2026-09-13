@@ -24,8 +24,8 @@ class RouteStop {
       stop: BusStop.fromJson(stopJson),
       direction: (json['direction'] as num?)?.toInt() ?? 0,
       stopOrder: (json['stopOrder'] as num?)?.toInt() ?? 0,
-      estimatedMinutesFromStart:
-          (json['estimatedMinutesFromStart'] as num?)?.toInt(),
+      estimatedMinutesFromStart: (json['estimatedMinutesFromStart'] as num?)
+          ?.toInt(),
     );
   }
 }

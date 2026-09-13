@@ -1,0 +1,3 @@
+# config.json chứa token đăng nhập thật, không đưa lên Git.
+config.json
+node_modules/

@@ -8,11 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 class ErrorState extends StatelessWidget {
-  const ErrorState({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ErrorState({super.key, required this.message, this.onRetry});
 
   // Thông điệp lỗi thân thiện (tiếng Việt).
   final String message;

@@ -4,7 +4,7 @@
 // cơ sở dữ liệu mà luôn được băm (hash) để bảo mật.
 //
 // Chuỗi bcrypt có độ dài 60 ký tự, vừa khớp với trường
-// password VARCHAR(64) trong bảng users của database TEST_123.
+// password VARCHAR(64) trong bảng users của database BusGo.
 // ------------------------------------------------------------
 
 import bcrypt from 'bcryptjs';

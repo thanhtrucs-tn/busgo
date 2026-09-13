@@ -10,11 +10,12 @@
 
 import 'package:flutter/material.dart';
 
-import '../data/sample_notifications.dart';
+import '../data/demo_notifications.dart';
 import '../l10n/app_localizations.dart';
 import '../models/app_notification.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/section_header.dart';
 
 // Bo loc danh sach thong bao.
 enum _Filter { all, route, system }
@@ -33,16 +34,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   void initState() {
     super.initState();
-    _items = buildSampleNotifications();
+    _items = buildDemoNotifications();
   }
 
   // Danh sach sau khi ap bo loc.
   List<AppNotification> get _filtered {
     if (_filter == _Filter.all) return _items;
-    final NotificationCategory category =
-        _filter == _Filter.route
-            ? NotificationCategory.route
-            : NotificationCategory.system;
+    final NotificationCategory category = _filter == _Filter.route
+        ? NotificationCategory.route
+        : NotificationCategory.system;
     return _items.where((n) => n.category == category).toList();
   }
 
@@ -51,17 +51,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() {
       _items = [for (final n in _items) n.copyWith(isRead: true)];
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('mark_all_read'))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr('mark_all_read'))));
   }
 
   // Danh dau mot thong bao da doc khi cham vao item.
   void _markRead(AppNotification item) {
     setState(() {
       _items = [
-        for (final n in _items)
-          n.id == item.id ? n.copyWith(isRead: true) : n,
+        for (final n in _items) n.id == item.id ? n.copyWith(isRead: true) : n,
       ];
     });
   }
@@ -87,15 +86,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     return [
-      if (recent.isNotEmpty)
-        _Group(context.tr('group_recent'), recent),
+      if (recent.isNotEmpty) _Group(context.tr('group_recent'), recent),
       if (today.isNotEmpty) _Group(context.tr('group_today'), today),
       if (older.isNotEmpty) _Group(context.tr('group_older'), older),
     ];
   }
 
   // Xu ly vuot: vuot phai = da doc, vuot trai = xoa.
-  Future<bool?> _onDismiss(DismissDirection direction, AppNotification item) async {
+  Future<bool?> _onDismiss(
+    DismissDirection direction,
+    AppNotification item,
+  ) async {
     if (direction == DismissDirection.startToEnd) {
       // Vuot phai: danh dau da doc (giu lai thong bao).
       setState(() {
@@ -113,7 +114,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(context.tr('notif_deleted', params: {'title': item.title})),
+        content: Text(
+          context.tr('notif_deleted', params: {'title': item.title}),
+        ),
       ),
     );
     return true;
@@ -130,10 +133,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           // Nut danh dau tat ca la da doc.
           IconButton(
             tooltip: context.tr('mark_all_read'),
-            icon: Icon(
-              Icons.mark_email_read_outlined,
-              color: colors.onPrimary,
-            ),
+            icon: Icon(Icons.mark_email_read_outlined, color: colors.onPrimary),
             onPressed: _filtered.isEmpty ? null : _markAllRead,
           ),
           const SizedBox(width: 4),
@@ -144,12 +144,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
           _buildFilterBar(),
           Expanded(
             child: _filtered.isEmpty
-                ? EmptyState(icon: _emptyIcon(context), message: _emptyMessage(context))
+                ? EmptyState(
+                    icon: _emptyIcon(context),
+                    message: _emptyMessage(context),
+                  )
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
                       for (final group in _buildGroups()) ...[
-                        _SectionHeader(label: group.label),
+                        SectionHeader(label: group.label, topPadding: 14),
                         for (final n in group.items)
                           _buildDismissible(context, n),
                       ],
@@ -163,16 +166,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   // Icon va message cho trang thai rong (theo bo loc hien tai).
   IconData _emptyIcon(BuildContext context) => switch (_filter) {
-        _Filter.all => Icons.notifications_off_outlined,
-        _Filter.route => Icons.directions_bus_outlined,
-        _Filter.system => Icons.settings_suggest_outlined,
-      };
+    _Filter.all => Icons.notifications_off_outlined,
+    _Filter.route => Icons.directions_bus_outlined,
+    _Filter.system => Icons.settings_suggest_outlined,
+  };
 
   String _emptyMessage(BuildContext context) => switch (_filter) {
-        _Filter.all => context.tr('notif_empty'),
-        _Filter.route => context.tr('notif_empty_routes'),
-        _Filter.system => context.tr('notif_empty_system'),
-      };
+    _Filter.all => context.tr('notif_empty'),
+    _Filter.route => context.tr('notif_empty_routes'),
+    _Filter.system => context.tr('notif_empty_system'),
+  };
 
   // Thanh loc: Tat ca | Tuyen xe | He thong.
   Widget _buildFilterBar() {
@@ -256,28 +259,6 @@ class _Group {
   final List<AppNotification> items;
 
   const _Group(this.label, this.items);
-}
-
-// Tieu de nhom thoi gian trong danh sach.
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: context.colors.primary,
-        ),
-      ),
-    );
-  }
 }
 
 // Nut loc dang vien thuoc (pill).
@@ -370,8 +351,9 @@ class _NotificationTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14.5,
-                            fontWeight:
-                                unread ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: unread
+                                ? FontWeight.w700
+                                : FontWeight.w600,
                             color: unread
                                 ? colors.onSurface
                                 : colors.onSurfaceVariant,
@@ -392,10 +374,7 @@ class _NotificationTile extends StatelessWidget {
                       ],
                       Text(
                         _timeAgo(context, item.time),
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: colors.outline,
-                        ),
+                        style: TextStyle(fontSize: 11.5, color: colors.outline),
                       ),
                     ],
                   ),
