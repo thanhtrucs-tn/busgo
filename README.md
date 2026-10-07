@@ -1,6 +1,6 @@
 # BusGo – Ứng dụng theo dõi tuyến xe buýt trên thiết bị di động
 
-**BusGo** là đồ án môn học "Lập trình trên thiết bị di động", được xây dựng theo mô hình client – server hoàn chỉnh: ứng dụng **Flutter** chạy trên Android/Web/Windows, kết hợp backend **Node.js + Express + MySQL** (Sequelize ORM), xác thực bằng **JWT + bcrypt**, hỗ trợ **đăng nhập Google** và truyền **vị trí xe buýt theo thời gian thực qua Socket.IO**. Ứng dụng phục vụ hành khách tra cứu tuyến, tra cứu trạm, xem lộ trình trên bản đồ OpenStreetMap, theo dõi xe đang chạy và ước lượng thời gian xe đến trạm.
+**BusGo** là tiểu luận môn học "Lập trình trên thiết bị di động", được xây dựng theo mô hình client – server hoàn chỉnh: ứng dụng **Flutter** chạy trên Android/Web/Windows, kết hợp backend **Node.js + Express + MySQL** (Sequelize ORM), xác thực bằng **JWT + bcrypt**, hỗ trợ **đăng nhập Google** và truyền **vị trí xe buýt theo thời gian thực qua Socket.IO**. Ứng dụng phục vụ hành khách tra cứu tuyến, tra cứu trạm, xem lộ trình trên bản đồ OpenStreetMap, theo dõi xe đang chạy và ước lượng thời gian xe đến trạm.
 
 > Quy ước tài liệu: các thông tin chưa thể xác định từ mã nguồn được đánh dấu `[CẦN BỔ SUNG: ...]` và được tổng hợp đầy đủ tại mục 24 để chủ dự án cập nhật sau.
 
