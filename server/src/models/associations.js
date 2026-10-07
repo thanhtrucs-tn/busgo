@@ -1,15 +1,4 @@
-// ------------------------------------------------------------
-// models/associations.js - Khai báo liên kết (association) giữa các model
-// tuyến/trạm. Module này PHẢI được import khi khởi động server (server.js)
-// để Sequelize biết quan hệ trước khi đồng bộ bảng (sync) và JOIN query.
-//
-// Mối quan hệ:
-//   User   ---> Profile    (mỗi tài khoản có đúng một hồ sơ)
-//   Route <---> Stop  (nhiều - nhiều) qua bảng trung gian route_stops
-//   Route  ---> RoutePoint (một tuyến có nhiều điểm polyline)
-//   Route  ---> Bus        (một tuyến có nhiều xe)
-//   Bus    ---> BusLocation(một xe có nhiều lần cập nhật vị trí)
-// ------------------------------------------------------------
+
 
 import User from './User.js';
 import Profile from './Profile.js';

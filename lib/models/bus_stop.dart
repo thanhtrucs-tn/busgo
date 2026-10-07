@@ -1,7 +1,3 @@
-// bus_stop.dart
-// Model đại diện cho một TRẠM xe buýt (BusStop).
-// Model chỉ chứa dữ liệu, tách khỏi giao diện và khỏi nguồn dữ liệu
-// (dữ liệu mẫu hoặc API backend đều tạo ra cùng một model).
 
 class BusStop {
   final String id;

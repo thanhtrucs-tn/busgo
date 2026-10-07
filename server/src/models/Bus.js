@@ -1,6 +1,4 @@
-// ------------------------------------------------------------
-// models/Bus.js - Model Sequelize cho bảng buses (xe buýt).
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

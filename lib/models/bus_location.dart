@@ -1,11 +1,4 @@
-// bus_location.dart
-// Model cho các sự kiện REALTIME từ Socket.IO.
-//
-//  - BusLocation: payload của sự kiện 'bus:location-updated'.
-//  - BusStatusUpdate: payload của sự kiện 'bus:status-updated'.
-//
-// Dữ liệu này do tài xế hoặc bộ mô phỏng GPS gửi lên backend, sau đó backend
-// phát lại cho mọi client đang ở trong phòng route:<routeId>.
+
 
 class BusLocation {
   final String busId;

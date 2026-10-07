@@ -1,10 +1,4 @@
-// ------------------------------------------------------------
-// models/RoutePoint.js - Model Sequelize cho bảng route_points.
-//
-// Chứa các tọa độ chi tiết (bám theo đường thật) để vẽ polyline,
-// KHÔNG chỉ nối thẳng giữa các trạm (tránh đường xuyên qua nhà).
-// Mỗi chiều đi/về có một chuỗi điểm riêng, đánh thứ tự point_order.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

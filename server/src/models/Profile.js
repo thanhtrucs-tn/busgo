@@ -1,15 +1,4 @@
-// ------------------------------------------------------------
-// models/Profile.js - Model Sequelize cho bảng profiles (hồ sơ mở rộng).
-//
-// Vì sao tách riêng khỏi bảng users?
-//  - Bảng users chỉ giữ thông tin đăng nhập (username, password, email, role).
-//  - Các thông tin hồ sơ như số điện thoại, ngày sinh, địa chỉ, ảnh đại diện
-//    được tách sang bảng profiles.
-//
-// QUAN TRỌNG: mỗi tài khoản chỉ có DUY NHẤT một hồ sơ, ràng buộc bởi
-// user_id (UNIQUE + khóa ngoại tới users.id). Mọi truy vấn hồ sơ BẮT BUỘC
-// lọc theo user_id của người đang đăng nhập (req.user.id), không dùng ID cố định.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

@@ -1,9 +1,4 @@
-// ------------------------------------------------------------
-// models/Route.js - Model Sequelize cho bảng routes (tuyến xe buýt).
-//
-// Chỉ dùng các trường cơ bản của đề tài. Underscored: true (đặt trong
-// config/db.js) tự động map cột snake_case: routeCode -> route_code.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

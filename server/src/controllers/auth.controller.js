@@ -1,14 +1,4 @@
-// ------------------------------------------------------------
-// controllers/auth.controller.js - Xử lý nghiệp vụ xác thực:
-//   - POST /api/auth/register  : đăng ký tài khoản mới
-//   - POST /api/auth/login     : đăng nhập, trả về JWT + user
-//   - POST /api/auth/google    : đăng ký / đăng nhập nhanh bằng Google
-//   - GET  /api/auth/me        : lấy thông tin user hiện tại (cần JWT)
-//
-// Dữ liệu được lưu qua Sequelize (models/User.js) vào bảng users
-// của database BusGo. Mật khẩu LUÔN được băm bằng bcrypt,
-// không bao giờ lưu dạng văn bản thô.
-// ------------------------------------------------------------
+
 
 import { Op } from 'sequelize';
 import User from '../models/User.js';

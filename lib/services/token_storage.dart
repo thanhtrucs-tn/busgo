@@ -1,13 +1,4 @@
-// token_storage.dart
-// Lưu trữ JWT (token) và thông tin user MỘT CÁCH AN TOÀN.
-//
-// Vì sao dùng flutter_secure_storage thay vì shared_preferences?
-//  - JWT là "chìa khóa" vào tài khoản, phải cất ở nơi mã hóa
-//    (Android: Keystore; Windows: Credential Manager; ...).
-//  - shared_preferences chỉ là file text thường, dễ bị đọc trộm.
-//
-// Mọi thao tác đều có try/catch: nếu thiết bị không hỗ trợ
-// (ví dụ máy ảo trong test) thì trả null thay vì crash app.
+
 
 import 'dart:convert';
 

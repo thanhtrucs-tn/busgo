@@ -1,12 +1,4 @@
-// auth_service.dart
-// Dịch vụ xác thực: đăng ký, đăng nhập, kiểm tra session (me).
-//
-// Luồng JWT:
-//   Đăng nhập thành công → backend trả { token, user }
-//   → AuthService lưu token + user vào SECURE STORAGE
-//   → ApiService tự động gửi header "Authorization: Bearer <token>"
-//     cho mọi API protected.
-//   → Đăng xuất / token hết hạn → xóa token trong secure storage.
+
 
 import 'dart:convert';
 

@@ -1,13 +1,4 @@
-// favorite_service.dart
-// Quan ly danh sach tuyen xe buyt yeu thich.
-//
-// QUAN TRONG (sua loi ro ri giua cac tai khoan):
-//  - Yeu thich duoc luu RIENG theo tung tai khoan voi khoa
-//    'favorite_route_ids_<userId>' thay vi mot khoa chung cho moi nguoi.
-//  - Khi dang nhap / khoi phuc phien: loadForUser(userId) xoa du lieu trong
-//    bo nho truoc, roi nap dung danh sach cua tai khoan do.
-//  - Khi dang xuat: clear() xoa danh sach trong bo nho de khong lo du lieu.
-// Ke thua ChangeNotifier de thong bao cho giao dien khi du lieu thay doi.
+
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';

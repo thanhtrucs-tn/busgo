@@ -1,4 +1,4 @@
-// ------------------------------------------------------------
+
 // controllers/transit.controller.js - Xử lý nghiệp vụ tuyến & trạm.
 //
 // API cung cấp (đi qua routers route.routes.js / stop.routes.js):
@@ -11,7 +11,7 @@
 //
 // Mọi phản hồi theo format chuẩn: { success, message, data }.
 // Validate tham số đầu vào, trả status phù hợp, KHÔNG trả stack trace.
-// ------------------------------------------------------------
+
 
 import { Op } from 'sequelize';
 
@@ -48,10 +48,10 @@ function withRouteParams(req, res, callback) {
   return callback(routeId, direction);
 }
 
-// ------------------------------------------------------------
+
 // Danh sách tuyến xe buýt.
 // GET /api/routes
-// ------------------------------------------------------------
+
 export async function listRoutes(req, res) {
   try {
     const routes = await Route.findAll({
@@ -79,10 +79,10 @@ export async function listRoutes(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Chi tiết một tuyến.
 // GET /api/routes/:routeId
-// ------------------------------------------------------------
+
 export async function getRoute(req, res) {
   return withRouteParams(req, res, async (routeId) => {
     try {
@@ -105,10 +105,10 @@ export async function getRoute(req, res) {
   });
 }
 
-// ------------------------------------------------------------
+
 // Danh sách trạm của một tuyến (theo chiều, sắp theo stop_order).
 // GET /api/routes/:routeId/stops?direction=0
-// ------------------------------------------------------------
+
 export async function getRouteStops(req, res) {
   return withRouteParams(req, res, async (routeId, direction) => {
     try {
@@ -140,10 +140,10 @@ export async function getRouteStops(req, res) {
   });
 }
 
-// ------------------------------------------------------------
+
 // Đường đi (polyline) của tuyến - tọa độ chi tiết bám đường thật.
 // GET /api/routes/:routeId/path?direction=0
-// ------------------------------------------------------------
+
 export async function getRoutePath(req, res) {
   return withRouteParams(req, res, async (routeId, direction) => {
     try {
@@ -177,10 +177,10 @@ export async function getRoutePath(req, res) {
   });
 }
 
-// ------------------------------------------------------------
+
 // Danh sách trạm (toàn hệ thống), có thể lọc theo từ khóa q.
 // GET /api/stops?q=Tên
-// ------------------------------------------------------------
+
 export async function listStops(req, res) {
   try {
     const q = (req.query.q || '').trim();
@@ -217,10 +217,10 @@ export async function listStops(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Chi tiết một trạm + các tuyến đi qua trạm.
 // GET /api/stops/:stopId
-// ------------------------------------------------------------
+
 export async function getStopDetail(req, res) {
   const stopId = Number(req.params.stopId);
   if (!Number.isInteger(stopId) || stopId <= 0) {
@@ -257,10 +257,10 @@ export async function getStopDetail(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Các tuyến đi qua một trạm (gồm cả chiều đi và chiều về).
 // GET /api/stops/:stopId/routes
-// ------------------------------------------------------------
+
 export async function getStopRoutes(req, res) {
   const stopId = Number(req.params.stopId);
   if (!Number.isInteger(stopId) || stopId <= 0) {
@@ -293,7 +293,7 @@ export async function getStopRoutes(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Dự kiến xe sắp tới trạm.
 // GET /api/stops/:stopId/arrivals
 //
@@ -304,7 +304,7 @@ export async function getStopRoutes(req, res) {
 //   4. Chia cho vận tốc hiện tại (nếu hợp lệ) hoặc vận tốc trung bình.
 //   5. Cộng thêm thời gian dừng trung bình ở các trạm phía trước.
 //   6. Bỏ qua xe đã đi qua trạm trong chiều đó hoặc vị trí quá cũ.
-// ------------------------------------------------------------
+
 export async function getStopArrivals(req, res) {
   const stopId = Number(req.params.stopId);
   if (!Number.isInteger(stopId) || stopId <= 0) {
@@ -447,10 +447,10 @@ export async function getStopArrivals(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Tìm trạm gần vị trí người dùng (công thức Haversine).
 // GET /api/stops/nearby?latitude=..&longitude=..&radius=2000
-// ------------------------------------------------------------
+
 export async function getNearbyStops(req, res) {
   const latitude = Number(req.query.latitude);
   const longitude = Number(req.query.longitude);
@@ -487,9 +487,9 @@ export async function getNearbyStops(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Các hàm chuyển đổi model -> dữ liệu an toàn (bỏ trường nội bộ).
-// ------------------------------------------------------------
+
 
 function publicRoute(route) {
   return {

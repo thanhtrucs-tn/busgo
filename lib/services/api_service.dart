@@ -1,15 +1,4 @@
-// api_service.dart
-// Lớp gọi HTTP TRUNG TÂM của ứng dụng.
-//
-// Nhiệm vụ quan trọng nhất: TỰ ĐỘNG đính kèm header:
-//   Authorization: Bearer <JWT_TOKEN>
-// vào MỌI request protected - lập trình viên không phải nhớ
-// viết header thủ công ở từng API.
-//
-// Ngoài ra còn xử lý chung:
-//  - timeout (tránh treo app khi mất mạng)
-//  - đọc lỗi HTTP (401, 403, 404, 500) và trả thông điệp tiếng Việt
-//  - chuyển JSON sang Map khi thành công
+
 
 import 'dart:convert';
 

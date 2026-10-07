@@ -1,6 +1,4 @@
-// ------------------------------------------------------------
-// models/Stop.js - Model Sequelize cho bảng stops (trạm xe buýt).
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

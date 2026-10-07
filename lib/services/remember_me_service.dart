@@ -1,14 +1,3 @@
-// remember_me_service.dart
-// Quản lý tính năng "Ghi nhớ đăng nhập" (remember me).
-//
-// Luồng hoạt động:
-//  1. Người dùng tick vào ô "Ghi nhớ đăng nhập" rồi đăng nhập.
-//  2. Tên đăng nhập được lưu lại bằng shared_preferences.
-//  3. Sau khi đăng xuất hoặc mở lại app, màn hình đăng nhập
-//     sẽ tự động điền sẵn (autofill) tên đăng nhập đã ghi nhớ.
-//
-// Ví dụ: người dùng tick ghi nhớ -> đăng nhập (tài khoản abc) -> đăng xuất
-//        -> tên "abc" vẫn còn trên ô tên đăng nhập.
 
 import 'package:shared_preferences/shared_preferences.dart';
 

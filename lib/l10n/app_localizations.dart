@@ -1,8 +1,4 @@
-// app_localizations.dart
-// He thong da ngon ngu (localization) cho ung dung BusGo.
-// Dung Map tu dien don gian gom Tieng Viet (vi) va Tieng Anh (en).
-// Khi ngon ngu thay doi, MaterialApp doi Locale -> Localizations thay doi
-// -> moi widget goi context.tr() tu dong duoc dung lai (rebuild).
+
 
 import 'package:flutter/widgets.dart';
 
@@ -14,12 +10,12 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _strings = {
     'vi': {
-      // ------------------------- Navigation -------------------------
+      // Navigation
       'nav_home': 'Trang chủ',
       'nav_map': 'Bản đồ',
       'nav_notifications': 'Thông báo',
       'nav_settings': 'Cài đặt',
-      // --------------------------- Home ---------------------------
+      // Home
       'home_slogan': 'Theo dõi tuyến xe buýt của bạn',
       'feature_map': 'Bản đồ',
       'feature_tracking': 'Theo dõi xe',
@@ -30,7 +26,7 @@ class AppLocalizations {
       'va_title': 'Trợ lý ảo',
       'va_msg': 'Tính năng trợ lý ảo sẽ sớm ra mắt',
       'coming_soon': 'Tính năng "{name}" sẽ sớm ra mắt',
-      // -------------------------- Statistics --------------------------
+      //- Statistics-
       'stats_title': 'Thống kê',
       'stats_total_routes': 'Tổng số tuyến',
       'stats_total_stops': 'Tổng số trạm',
@@ -43,22 +39,22 @@ class AppLocalizations {
       'stats_route_stops': '{count} trạm',
       'stats_no_data': 'Chưa có dữ liệu thống kê',
       'stats_no_buses': 'Không có xe nào đang chạy',
-      // ------------------------ Route list ------------------------
+      //  Route list 
       'route_list_title': 'Danh sách tuyến',
       'search_route_hint': 'Tìm theo số tuyến hoặc tên',
       'no_routes_found': 'Không tìm thấy tuyến nào',
       'routes_active': '{count} tuyến đang hoạt động',
       'stops_count': '{count} trạm',
-      // ------------------------- Stop list -------------------------
+      // Stop list
       'stop_list_title': 'Danh sách trạm',
       'search_stop_hint': 'Tìm theo tên trạm hoặc địa chỉ',
       'no_stops_found': 'Không tìm thấy trạm nào',
       'routes_passing': '{count} tuyến đi qua',
-      // -------------------------- Favorites --------------------------
+      //- Favorites-
       'favorites_title': 'Tuyến yêu thích',
       'favorites_empty':
           'Chưa có tuyến yêu thích nào\nBấm trái tim ở danh sách tuyến để thêm',
-      // ------------------------- Route detail -------------------------
+      // Route detail
       'route_no': 'Tuyến {number}',
       'journey': 'Hành trình',
       'buses_on_route': 'Xe buýt trên tuyến',
@@ -73,7 +69,7 @@ class AppLocalizations {
       'stop_end_tag': 'Điểm cuối',
       'bus_active': 'Đang hoạt động',
       'bus_stopped': 'Dừng',
-      // -------------------------- Stop detail -------------------------
+      //- Stop detail
       'stop_type': 'Trạm xe buýt',
       'address': 'Địa chỉ',
       'coordinates': 'Tọa độ',
@@ -81,7 +77,7 @@ class AppLocalizations {
       'routes_through': 'Các tuyến đi qua trạm',
       'route_count': '{count} tuyến',
       'no_routes_through': 'Không có tuyến nào đi qua trạm này',
-      // ---------------------------- Map ----------------------------
+      //- Map-
       'map_title': 'Bản đồ',
       'map_no_data': 'Không có dữ liệu trạm để hiển thị',
       'map_search_hint': 'Tìm tuyến, trạm hoặc địa điểm',
@@ -89,7 +85,7 @@ class AppLocalizations {
       'map_no_routes': 'Chưa có tuyến xe buýt',
       'map_select_route': 'Chọn một tuyến để xem lộ trình',
       'map_no_path': 'Tuyến này chưa có dữ liệu lộ trình',
-      // --------------------- Trạng thái chung ---------------------
+      // - Trạng thái chung -
       'loading': 'Đang tải...',
       'load_error': 'Không tải được dữ liệu',
       'retry': 'Thử lại',
@@ -110,7 +106,7 @@ class AppLocalizations {
       'distance_from_you': 'Cách bạn {distance}',
       'nearby_only': 'Trạm gần nhất',
       'nearby_all': 'Tất cả trạm',
-      // -------------------------- Tracking --------------------------
+      //- Tracking-
       'tracking_title': 'Theo dõi xe buýt',
       'tracking_banner':
           'Dữ liệu mô phỏng: vị trí xe cập nhật theo thời gian thực',
@@ -118,7 +114,7 @@ class AppLocalizations {
       'status_active': 'Trạng thái: Đang hoạt động',
       'position_label': 'Vị trí:',
       'simulated_note': '(*) Vị trí là dữ liệu mô phỏng, không phải GPS thật',
-      // ------------------------- Notifications -------------------------
+      // Notifications
       'notif_title': 'Thông báo',
       'mark_all_read': 'Đánh dấu tất cả là đã đọc',
       'group_recent': 'Mới nhất',
@@ -142,7 +138,7 @@ class AppLocalizations {
       'time_hour_ago': '{count} giờ trước',
       'time_yesterday': 'Hôm qua',
       'time_day_ago': '{count} ngày trước',
-      // --------------------------- Settings ---------------------------
+      // Settings
       'settings_title': 'Cài đặt',
       'group_account': 'Tài khoản',
       'group_prefs': 'Tùy chỉnh',
@@ -180,7 +176,7 @@ class AppLocalizations {
       'logout_confirm_title': 'Đăng xuất',
       'logout_confirm_msg': 'Bạn có chắc muốn đăng xuất khỏi tài khoản?',
       'logged_out': 'Đã đăng xuất',
-      // ------------------------- Edit profile -------------------------
+      // Edit profile
       'edit_title': 'Chỉnh sửa hồ sơ',
       'label_avatar': 'Chạm để chọn ảnh đại diện',
       'field_fullname': 'Họ và tên',
@@ -213,19 +209,19 @@ class AppLocalizations {
       'location_service_disabled': 'Vui lòng bật dịch vụ định vị (GPS)',
       'location_permission_denied': 'Quyền truy cập vị trí bị từ chối',
       'location_error': 'Không thể lấy vị trí, vui lòng thử lại',
-      // ------------------------- Xem ho so -------------------------
+      // Xem ho so
       'profile_title': 'Hồ sơ cá nhân',
       'personal_info': 'Thông tin cá nhân',
       'not_updated': 'Chưa cập nhật',
       'no_addresses': 'Chưa có địa chỉ nào',
     },
     'en': {
-      // ------------------------- Navigation -------------------------
+      // Navigation
       'nav_home': 'Home',
       'nav_map': 'Map',
       'nav_notifications': 'Notifications',
       'nav_settings': 'Settings',
-      // --------------------------- Home ---------------------------
+      // Home
       'home_slogan': 'Follow your bus routes',
       'feature_map': 'Map',
       'feature_tracking': 'Live Tracking',
@@ -236,7 +232,7 @@ class AppLocalizations {
       'va_title': 'Virtual Assistant',
       'va_msg': 'The virtual assistant is coming soon',
       'coming_soon': 'The "{name}" feature is coming soon',
-      // -------------------------- Statistics --------------------------
+      //- Statistics-
       'stats_title': 'Statistics',
       'stats_total_routes': 'Total routes',
       'stats_total_stops': 'Total stops',
@@ -249,22 +245,22 @@ class AppLocalizations {
       'stats_route_stops': '{count} stops',
       'stats_no_data': 'No statistics data yet',
       'stats_no_buses': 'No buses running',
-      // ------------------------ Route list ------------------------
+      //  Route list 
       'route_list_title': 'Route List',
       'search_route_hint': 'Search by route number or name',
       'no_routes_found': 'No routes found',
       'routes_active': '{count} active routes',
       'stops_count': '{count} stops',
-      // ------------------------- Stop list -------------------------
+      // Stop list
       'stop_list_title': 'Bus Stops',
       'search_stop_hint': 'Search by stop name or address',
       'no_stops_found': 'No stops found',
       'routes_passing': '{count} routes passing',
-      // -------------------------- Favorites --------------------------
+      //- Favorites-
       'favorites_title': 'Favorite Routes',
       'favorites_empty':
           'No favorite routes yet\nTap the heart in the route list to add',
-      // ------------------------- Route detail -------------------------
+      // Route detail
       'route_no': 'Route {number}',
       'journey': 'Journey',
       'buses_on_route': 'Buses on Route',
@@ -279,7 +275,7 @@ class AppLocalizations {
       'stop_end_tag': 'End',
       'bus_active': 'Active',
       'bus_stopped': 'Stopped',
-      // -------------------------- Stop detail -------------------------
+      //- Stop detail
       'stop_type': 'Bus Stop',
       'address': 'Address',
       'coordinates': 'Coordinates',
@@ -287,7 +283,7 @@ class AppLocalizations {
       'routes_through': 'Routes Through This Stop',
       'route_count': '{count} routes',
       'no_routes_through': 'No routes pass this stop',
-      // ---------------------------- Map ----------------------------
+      //- Map-
       'map_title': 'Map',
       'map_no_data': 'No stop data to display',
       'map_search_hint': 'Search routes, stops or places',
@@ -295,7 +291,7 @@ class AppLocalizations {
       'map_no_routes': 'No bus routes yet',
       'map_select_route': 'Select a route to view its path',
       'map_no_path': 'This route has no path data',
-      // --------------------- Trạng thái chung ---------------------
+      // - Trạng thái chung -
       'loading': 'Loading...',
       'load_error': 'Could not load data',
       'retry': 'Retry',
@@ -316,14 +312,14 @@ class AppLocalizations {
       'distance_from_you': '{distance} from you',
       'nearby_only': 'Nearest stops',
       'nearby_all': 'All stops',
-      // -------------------------- Tracking --------------------------
+      //- Tracking-
       'tracking_title': 'Live Bus Tracking',
       'tracking_banner': 'Simulated data: bus positions update in realtime',
       'bus_label': 'Bus {number}',
       'status_active': 'Status: Active',
       'position_label': 'Position:',
       'simulated_note': '(*) Simulated positions, not real GPS',
-      // ------------------------- Notifications -------------------------
+      // Notifications
       'notif_title': 'Notifications',
       'mark_all_read': 'Mark all as read',
       'group_recent': 'Recent',
@@ -347,7 +343,7 @@ class AppLocalizations {
       'time_hour_ago': '{count} hours ago',
       'time_yesterday': 'Yesterday',
       'time_day_ago': '{count} days ago',
-      // --------------------------- Settings ---------------------------
+      // Settings
       'settings_title': 'Settings',
       'group_account': 'Account',
       'group_prefs': 'Preferences',
@@ -384,7 +380,7 @@ class AppLocalizations {
       'logout_confirm_title': 'Log Out',
       'logout_confirm_msg': 'Are you sure you want to log out?',
       'logged_out': 'Logged out',
-      // ------------------------- Edit profile -------------------------
+      // Edit profile
       'edit_title': 'Edit Profile',
       'label_avatar': 'Tap to choose an avatar',
       'field_fullname': 'Full Name',
@@ -417,7 +413,7 @@ class AppLocalizations {
       'location_service_disabled': 'Please enable location services (GPS)',
       'location_permission_denied': 'Location permission denied',
       'location_error': 'Could not get location. Please try again',
-      // ------------------------- View profile -------------------------
+      // View profile
       'profile_title': 'My Profile',
       'personal_info': 'Personal Information',
       'not_updated': 'Not set yet',

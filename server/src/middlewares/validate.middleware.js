@@ -1,11 +1,4 @@
-// ------------------------------------------------------------
-// Middleware kiểm tra dữ liệu đầu vào cho ĐĂNG KÝ / ĐĂNG NHẬP.
-// Giới hạn độ dài khớp với cấu trúc bảng users:
-//   - username 3-32 ký tự, chỉ gồm chữ cái, số và dấu gạch dưới
-//   - password 6-64 ký tự
-//   - email tùy chọn, tối đa 48 ký tự, đúng định dạng nếu có
-//   - name tùy chọn, tối đa 50 ký tự
-// ------------------------------------------------------------
+
 
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 32;

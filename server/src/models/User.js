@@ -1,17 +1,4 @@
-// ------------------------------------------------------------
-// models/User.js - Model Sequelize cho bảng users.
-//
-// Đây là mô hình TÀI KHOẢN NGƯỜI DÙNG duy nhất của ứng dụng.
-// Bảng users đã tồn tại từ giai đoạn trước (username + password),
-// chúng ta GIỮ NGUYÊN và chỉ BỔ SUNG các trường cần thiết:
-//   - email       : phục vụ đăng nhập bằng email (tùy chọn)
-//   - name        : tên hiển thị (mặc định bằng username)
-//   - role        : phân quyền ('user' | 'admin')
-//   - google_id   : mã định danh tài khoản Google (đăng ký/đăng nhập nhanh)
-//   - updated_at  : thời điểm cập nhật (Sequelize tự quản lý)
-//
-// QUAN TRỌNG: không tạo bảng mới, không xóa dữ liệu hiện có.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

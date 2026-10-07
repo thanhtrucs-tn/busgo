@@ -1,10 +1,4 @@
-// ------------------------------------------------------------
-// models/BusLocation.js - Model Sequelize cho bảng bus_locations.
-//
-// Mỗi dòng là một lần cập nhật vị trí của xe buýt (do tài xế/thiết bị GPS
-// gửi lên qua POST /api/buses/:busId/location). Bảng này chỉ ghi thêm,
-// vị trí mới nhất của một xe là dòng có recorded_at lớn nhất.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

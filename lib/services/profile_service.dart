@@ -1,15 +1,4 @@
-// profile_service.dart
-// Quản lý HỒ SƠ CÁ NHÂN của tài khoản đang đăng nhập.
-//
-// ĐÂY LÀ ĐIỂM SỬA LỖI RÒ RỈ DỮ LIỆU GIỮA CÁC TÀI KHOẢN:
-//  - Hồ sơ là nguồn dữ liệu TẬP TRUNG từ backend (GET/PUT /api/profile/me),
-//    backend chỉ trả hồ sơ theo user_id trong JWT.
-//  - Không còn dùng một khóa SharedPreferences chung cho mọi tài khoản.
-//    Mỗi lần đăng nhập, loadForUser() XÓA SẠCH dữ liệu trong bộ nhớ rồi
-//    tải hồ sơ của đúng tài khoản đó từ server.
-//  - Khi đăng xuất, clear() xóa toàn bộ dữ liệu trong bộ nhớ và dọn cả
-//    các khóa cũ còn sót lại trong SharedPreferences.
-// Kế thừa ChangeNotifier để giao diện cập nhật khi hồ sơ/trạng thái tải đổi.
+
 
 import 'dart:convert';
 

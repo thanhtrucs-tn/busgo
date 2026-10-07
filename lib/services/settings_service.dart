@@ -1,7 +1,3 @@
-// settings_service.dart
-// Quan ly cac cau hinh (settings) cua ung dung: che do toi, ngon ngu,
-// va cac tuy chon thong bao. Luu tru cuc bo bang shared_preferences.
-// Ke thua ChangeNotifier de thong bao cho giao dien khi cau hinh thay doi.
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';

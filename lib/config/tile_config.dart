@@ -1,18 +1,4 @@
-// tile_config.dart
-// Cấu hình TẬP TRUNG cho nguồn bản đồ (tile provider).
-//
-// Mục đích:
-//  - Không hardcode URL/attribution trực tiếp trong Widget.
-//  - Tách riêng URL tile, tên gói User-Agent và attribution.
-//  - Mặc định dùng Esri World Street Map (raster, có đầy đủ tên đường/nhãn),
-//    OpenStreetMap được cấu hình sẵn làm phương án dự phòng.
-//
-// LƯU Ý: tile công cộng chỉ phù hợp cho demo/đồ án, KHÔNG phải giải pháp
-// production lâu dài. Khi triển khai thật nên dùng nhà cung cấp tile riêng
-// (có API key) hoặc tile server tự vận hành.
-//
-// Đổi nguồn tile: chỉ cần sửa giá trị của `current` (vd: TileConfig.osm),
-// toàn bộ màn hình bản đồ sẽ dùng theo mà không phải chỉnh từng chỗ.
+
 
 // Đại diện một nguồn tile.
 class TileProviderConfig {

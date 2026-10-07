@@ -1,4 +1,4 @@
-// ------------------------------------------------------------
+
 // controllers/user.controller.js - Các API liên quan đến tài khoản
 // (đều là PROTECTED - phải có JWT hợp lệ):
 //
@@ -9,7 +9,7 @@
 //   - PUBLIC API   : đăng ký, đăng nhập, dữ liệu tuyến/trạm công khai.
 //   - PROTECTED API: thông tin cá nhân, quản lý hồ sơ, yêu thích...
 //   - ADMIN API    : chỉ role 'admin' được truy cập.
-// ------------------------------------------------------------
+
 
 import User from '../models/User.js';
 import { failure, success } from '../utils/response.util.js';

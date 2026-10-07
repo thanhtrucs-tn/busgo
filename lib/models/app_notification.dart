@@ -1,6 +1,4 @@
-// app_notification.dart
-// Model dai dien cho mot thong bao trong ung dung BusGo.
-// Moi thong bao co loai (kind), tieu de, noi dung, thoi gian va trang thai da doc.
+
 
 enum NotificationKind {
   arrival, // Xe sap den tram

@@ -1,9 +1,3 @@
-// user_account.dart
-// Model đại diện cho tài khoản người dùng đã đăng nhập (JWT).
-//
-// Ví dụ JSON từ API login:
-//   "user": { "id": 1, "username": "nguyenvana", "name": "Nguyễn Văn A",
-//             "email": "a@example.com", "role": "user" }
 
 class UserAccount {
   // Khóa chính của tài khoản trong bảng users.

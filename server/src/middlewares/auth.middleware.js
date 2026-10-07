@@ -1,18 +1,4 @@
-// ------------------------------------------------------------
-// middlewares/auth.middleware.js - Xác thực JWT cho API.
-//
-// Quy trình authenticateToken (7 bước theo yêu cầu):
-//   1. Kiểm tra header Authorization có tồn tại hay không.
-//   2. Kiểm tra token có được gửi kèm hay không.
-//   3. Verify JWT (đúng chữ ký, chưa hết hạn).
-//   4. Lấy userId từ payload của token.
-//   5. Tìm user trong database (đảm bảo tài khoản còn tồn tại).
-//   6. Gắn user vào req.user.
-//   7. Cho phép request tiếp tục (next()).
-//
-// Ví dụ header hợp lệ:
-//   Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
-// ------------------------------------------------------------
+
 
 import User from '../models/User.js';
 import { failure } from '../utils/response.util.js';

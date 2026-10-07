@@ -1,12 +1,3 @@
-// transit_service.dart
-// Dịch vụ TRUNG TÂM gọi các API về tuyến – trạm – xe buýt.
-//
-// Nhiệm vụ: gọi API qua ApiService, kiểm tra kết quả và chuyển JSON thành
-// các model (BusRoute, BusStop, RouteStop, RoutePoint, Bus).
-// Màn hình KHÔNG gọi API trực tiếp; chỉ làm việc với TransitService.
-//
-// Xử lý lỗi: ném TransitException kèm thông điệp tiếng Việt để màn hình
-// hiển thị trạng thái lỗi cho người dùng.
 
 import '../models/bus.dart';
 import '../models/bus_route.dart';

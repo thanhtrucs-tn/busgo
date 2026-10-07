@@ -1,6 +1,3 @@
-// bus.dart
-// Model đại diện cho một chiếc XE BUÝT (Bus) và vị trí mới nhất của nó.
-// Dùng chung cho dữ liệu mẫu và API backend.
 
 class Bus {
   final String id;

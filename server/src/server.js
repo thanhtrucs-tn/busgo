@@ -1,13 +1,4 @@
-// ------------------------------------------------------------
-// server.js - Điểm khởi động của API BusGo (đăng nhập / đăng ký / JWT).
-//
-// Cách chạy:
-//   1. Tạo database BusGo: chạy file  server/sql/BusGo.sql.
-//   2. Sao chép .env.production thành .env và điền mật khẩu MySQL
-//      + JWT_SECRET (khóa bí mật ký JWT).
-//   3. cài thư viện:  npm install
-//   4. chạy API:      npm start   (mặc định cổng 3000)
-// ------------------------------------------------------------
+
 
 import cors from 'cors';
 import dotenv from 'dotenv';

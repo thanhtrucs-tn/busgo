@@ -1,10 +1,4 @@
-// ------------------------------------------------------------
-// models/RouteStop.js - Model Sequelize cho bảng route_stops.
-//
-// Là bảng trung gian giữa routes và stops: một trạm thuộc nhiều tuyến,
-// một tuyến có nhiều trạm. Khóa chính tổ hợp (route_id, stop_id, direction)
-// để cho phép một trạm nằm ở cả chiều đi và chiều về.
-// ------------------------------------------------------------
+
 
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db.js';

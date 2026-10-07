@@ -1,4 +1,4 @@
-// ------------------------------------------------------------
+
 // controllers/profile.controller.js - API HỒ SƠ CÁ NHÂN (protected).
 //
 //   GET /api/profile/me -> hồ sơ của chính người đang đăng nhập
@@ -9,7 +9,7 @@
 //  - KHÔNG đọc userId/id từ body, query hay URL của client.
 //  - Mọi truy vấn Profile đều có điều kiện where: { userId }, không có
 //    truy vấn kiểu Profile.findOne() hay findByPk(1) lấy bừa hồ sơ đầu tiên.
-// ------------------------------------------------------------
+
 
 import Profile from '../models/Profile.js';
 import User from '../models/User.js';
@@ -59,9 +59,9 @@ function parseAddresses(raw) {
   }
 }
 
-// ------------------------------------------------------------
+
 // GET /api/profile/me
-// ------------------------------------------------------------
+
 export async function getMyProfile(req, res) {
   try {
     const profile = await getOrCreateProfile(req.user.id);
@@ -72,11 +72,11 @@ export async function getMyProfile(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // PUT /api/profile/me
 // Body: { name, email, phone, birthday, avatar, addresses,
 //         defaultAddressIndex, locationLat, locationLng, password? }
-// ------------------------------------------------------------
+
 export async function updateMyProfile(req, res) {
   const userId = req.user.id; // Chỉ tin user_id từ JWT
   const body = req.body || {};

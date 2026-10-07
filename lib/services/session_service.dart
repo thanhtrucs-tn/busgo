@@ -1,13 +1,3 @@
-// session_service.dart
-// Quản lý PHIÊN ĐĂNG NHẬP hiện tại của ứng dụng (trạng thái trong bộ nhớ).
-//
-// Khác biệt giữa các "lớp lưu trữ":
-//  - TokenStorage   : lưu JWT + user vào secure storage (bền vững).
-//  - SessionService : giữ USER đang đăng nhập trong bộ nhớ (nhanh, tức thời).
-//  - RememberMeService: lưu TÊN đăng nhập để autofill ô nhập (không phải JWT).
-//
-// Khi ĐĂNG XUẤT: gọi AuthService.logout() để xóa JWT trên thiết bị,
-// rồi xóa user khỏi bộ nhớ -> màn hình quay về Đăng nhập.
 
 import 'package:flutter/foundation.dart';
 

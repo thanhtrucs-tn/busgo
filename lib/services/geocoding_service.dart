@@ -1,10 +1,3 @@
-// geocoding_service.dart
-// Chuyển tọa độ GPS thành địa chỉ chữ (reverse geocoding).
-//
-// Dùng 2 dịch vụ miễn phí, không cần API key:
-//   1. OpenStreetMap Nominatim (ưu tiên, địa chỉ theo cấp hành chính VN).
-//   2. BigDataCloud (dự phòng khi Nominatim lỗi hoặc mất mạng).
-// Trả null nếu cả hai đều thất bại - màn hình sẽ hiện tọa độ thay thế.
 
 import 'dart:convert';
 

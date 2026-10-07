@@ -1,24 +1,4 @@
-// location_service.dart
-// Dịch vụ GPS TRUNG TÂM của ứng dụng - tách toàn bộ logic vị trí
-// ra khỏi Widget (đúng chuẩn kiến trúc, dễ tái sử dụng, dễ test).
-//
-// Service chịu trách nhiệm:
-//   1. Kiểm tra GPS đã bật chưa (Location Service).
-//   2. Kiểm tra / xin quyền vị trí (Permission).
-//   3. Lấy vị trí hiện tại (latitude, longitude).
-//   4. Xử lý mọi lỗi có thể xảy ra -> trả thông điệp TIẾNG VIỆT rõ ràng,
-//      TUYỆT ĐỐI KHÔNG để app crash.
-//
-// Các lỗi được xử lý:
-//   - GPS tắt                 -> "Vui lòng bật định vị (GPS)..."
-//   - Từ chối quyền            -> "Vui lòng cấp quyền vị trí..."
-//   - Từ chối vĩnh viễn        -> hướng dẫn mở Settings
-//   - Lấy vị trí thất bại/timeout -> thông báo thử lại
-//   - Thiết bị không hỗ trợ    -> thông báo rõ ràng
-//
-// LƯU Ý: package geolocator chỉ hỗ trợ Android/iOS/macOS chính thức;
-// trên Windows/Web nó sẽ ném UnsupportedError -> service bắt lại
-// và trả thông báo "thiết bị không hỗ trợ" thay vì crash.
+
 
 import 'dart:async';
 import 'dart:math' as math;

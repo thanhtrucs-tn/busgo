@@ -1,19 +1,4 @@
-// google_auth_service.dart
-// Dịch vụ chứa logic chung của "Đăng nhập nhanh bằng Google".
-//
-// Nền tảng KHÁC Web (Android/iOS/macOS):
-//   - Dùng GoogleSignIn.instance.authenticate() để mở hộp thoại chọn tài khoản.
-//   - Lấy ID token từ tài khoản vừa chọn để gửi cho backend xác minh.
-//
-// Nền tảng Web:
-//   - GSI SDK KHÔNG cho phép nút bấm tự vẽ, bắt buộc dùng đúng widget
-//     google_sign_in_web.renderButton() (xem google_sign_in_web_button).
-//   - ID token đến qua stream authenticationEvents của GoogleSignIn.
-//
-// Nền tảng không hỗ trợ (Windows/Linux): không hiện nút Google.
-//
-// ID token KHÔNG được coi là "đã xác thực" ở app; backend phải tự xác
-// minh lại với Google (server/src/utils/google.util.js) trước khi tạo JWT.
+
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';

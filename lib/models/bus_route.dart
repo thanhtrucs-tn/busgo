@@ -1,12 +1,3 @@
-// bus_route.dart
-// Model đại diện cho một TUYẾN xe buýt (BusRoute).
-//
-// Model dùng chung cho cả hai nguồn dữ liệu:
-//  - Dữ liệu mẫu dùng cho test (test/fixtures/sample_data.dart).
-//  - API backend (GET /api/routes) thông qua factory BusRoute.fromJson.
-//
-// Các trường mới (color, startTime, endTime, frequencyMinutes, fare, status,
-// stopCount) đều có giá trị mặc định nên dữ liệu mẫu cũ vẫn tạo được.
 
 import 'bus_stop.dart';
 

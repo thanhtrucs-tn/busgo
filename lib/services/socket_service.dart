@@ -1,16 +1,4 @@
-// socket_service.dart
-// Dịch vụ Socket.IO TRUNG TÂM cho việc theo dõi xe buýt theo thời gian thực.
-//
-// Trách nhiệm:
-//  - Kết nối tới backend (cùng cổng với REST API, không có tiền tố /api).
-//  - Tham gia / rời phòng theo tuyến: route:<routeId>.
-//  - Phát lại cho UI hai luồng sự kiện:
-//      + locationUpdates : 'bus:location-updated'
-//      + statusUpdates   : 'bus:status-updated'
-//  - Tự kết nối lại khi mất mạng và tự tham gia lại các phòng đã đăng ký.
-//  - Đếm số nơi đang theo dõi mỗi tuyến để chỉ rời phòng khi không còn ai.
-//
-// Singleton: cả app dùng chung một kết nối, tránh mở nhiều socket.
+
 
 import 'dart:async';
 

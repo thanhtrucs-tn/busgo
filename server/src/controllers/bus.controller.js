@@ -1,4 +1,4 @@
-// ------------------------------------------------------------
+
 // controllers/bus.controller.js - Xử lý nghiệp vụ XE BUÝT.
 //
 //   GET  /api/routes/:routeId/buses -> xe của tuyến + vị trí mới nhất
@@ -6,7 +6,7 @@
 //
 // Sau khi lưu vị trí thành công, phát sự kiện Socket.IO tới phòng
 // route:<routeId> để Flutter vẽ lại marker trên bản đồ.
-// ------------------------------------------------------------
+
 
 import Bus from '../models/Bus.js';
 import BusLocation from '../models/BusLocation.js';
@@ -31,10 +31,10 @@ function publicBus(bus, location) {
   };
 }
 
-// ------------------------------------------------------------
+
 // Danh sách xe của một tuyến kèm vị trí mới nhất.
 // GET /api/routes/:routeId/buses
-// ------------------------------------------------------------
+
 export async function getRouteBuses(req, res) {
   const routeId = Number(req.params.routeId);
   if (!Number.isInteger(routeId) || routeId <= 0) {
@@ -65,11 +65,11 @@ export async function getRouteBuses(req, res) {
   }
 }
 
-// ------------------------------------------------------------
+
 // Cập nhật vị trí mới nhất của một xe.
 // POST /api/buses/:busId/location
 // Body: { routeId, latitude, longitude, speed?, heading? }
-// ------------------------------------------------------------
+
 export async function updateBusLocation(req, res) {
   const busId = Number(req.params.busId);
   if (!Number.isInteger(busId) || busId <= 0) {
